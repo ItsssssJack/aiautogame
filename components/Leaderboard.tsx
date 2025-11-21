@@ -119,7 +119,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ scores: localScores, onBack }
                         </div>
                       </div>
 
-                      {entry.aiComment && (
+                      {entry.aiComment && !entry.aiComment.toLowerCase().includes('api') && (
                         <p className="text-slate-400 text-sm italic mt-1">"{entry.aiComment}"</p>
                       )}
                     </div>
