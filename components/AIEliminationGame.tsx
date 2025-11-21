@@ -352,8 +352,6 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
             c2.eliminated = true;
             c1.eliminationOrder = eliminationOrderRef.current;
             c2.eliminationOrder = eliminationOrderRef.current;
-            // Speed boost on elimination
-            speedMultiplierRef.current += 0.15;
             // Create elimination particles
             createEliminationParticles(c1.x, c1.y, c1.character.color);
             createEliminationParticles(c2.x, c2.y, c2.character.color);
@@ -363,8 +361,6 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               c1.eliminated = true;
               eliminationOrderRef.current++;
               c1.eliminationOrder = eliminationOrderRef.current;
-              // Speed boost on elimination
-              speedMultiplierRef.current += 0.15;
               // Create elimination particles
               createEliminationParticles(c1.x, c1.y, c1.character.color);
             }
@@ -372,8 +368,6 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               c2.eliminated = true;
               eliminationOrderRef.current++;
               c2.eliminationOrder = eliminationOrderRef.current;
-              // Speed boost on elimination
-              speedMultiplierRef.current += 0.15;
               // Create elimination particles
               createEliminationParticles(c2.x, c2.y, c2.character.color);
             }
