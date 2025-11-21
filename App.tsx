@@ -8,7 +8,6 @@ import MainMenu from './components/MainMenu';
 import GameOver from './components/GameOver';
 import Leaderboard from './components/Leaderboard';
 import AIEliminationGame from './components/AIEliminationGame';
-import FlappyBirdGame from './components/FlappyBirdGame';
 import GameModeSelection from './components/GameModeSelection';
 
 const App: React.FC = () => {
@@ -137,10 +136,6 @@ const App: React.FC = () => {
     localStorage.setItem('neon_runner_elimination_wins', newWins.toString());
   };
 
-  const startFlappyBird = () => {
-    setGameState(GameState.FLAPPY_BIRD);
-  };
-
   const currentTheme = THEMES[currentThemeId];
   const selectedCharacter = allCharacters.find(c => c.id === selectedCharacterId) || allCharacters[0];
 
@@ -193,7 +188,6 @@ const App: React.FC = () => {
         <GameModeSelection
           onSelectRacing={() => setGameState(GameState.MENU)}
           onSelectElimination={startElimination}
-          onSelectFlappyBird={startFlappyBird}
         />
       )}
 
@@ -238,14 +232,6 @@ const App: React.FC = () => {
           eliminationWins={eliminationWins}
           allCharacters={allCharacters}
           onRefreshAvatars={loadCommunityAvatars}
-        />
-      )}
-
-      {gameState === GameState.FLAPPY_BIRD && (
-        <FlappyBirdGame
-          selectedCharacter={selectedCharacter}
-          onBack={() => setGameState(GameState.MODE_SELECTION)}
-          allCharacters={allCharacters}
         />
       )}
     </div>

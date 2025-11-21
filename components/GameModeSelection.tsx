@@ -5,13 +5,11 @@ import packageJson from '../package.json';
 interface GameModeSelectionProps {
   onSelectRacing: () => void;
   onSelectElimination: () => void;
-  onSelectFlappyBird: () => void;
 }
 
 const GameModeSelection: React.FC<GameModeSelectionProps> = ({
   onSelectRacing,
-  onSelectElimination,
-  onSelectFlappyBird
+  onSelectElimination
 }) => {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-purple-900/20">
@@ -47,7 +45,7 @@ const GameModeSelection: React.FC<GameModeSelectionProps> = ({
       </div>
 
       {/* Game Mode Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl w-full px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full px-4">
         {/* Racing Mode */}
         <button
           onClick={onSelectRacing}
@@ -68,28 +66,6 @@ const GameModeSelection: React.FC<GameModeSelectionProps> = ({
             </div>
           </div>
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        </button>
-
-        {/* Robo Bird Mode */}
-        <button
-          onClick={onSelectFlappyBird}
-          className="group relative p-6 rounded-2xl border-2 border-yellow-500/30 bg-slate-800/50 backdrop-blur-md hover:border-yellow-400 hover:bg-slate-700/50 transition-all duration-300 hover:scale-105 active:scale-95"
-        >
-          <div className="text-center">
-            <div className="text-5xl mb-3">🤖</div>
-            <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 mb-2">
-              ROBO BIRD
-            </h2>
-            <p className="text-white/70 text-xs mb-4 leading-relaxed">
-              AI-powered arcade action. Tap to flap through endless pipes. Simple controls, brutal difficulty. How far can you go?
-            </p>
-            <div className="space-y-1 text-[10px] text-white/50">
-              <div>✓ One-Touch Controls</div>
-              <div>✓ Endless Challenge</div>
-              <div>✓ Global Leaderboard</div>
-            </div>
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         </button>
 
         {/* Elimination Mode */}

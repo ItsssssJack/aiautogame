@@ -6,8 +6,7 @@ export enum GameState {
   PLAYING,
   GAME_OVER,
   LEADERBOARD,
-  AI_ELIMINATION,
-  FLAPPY_BIRD
+  AI_ELIMINATION
 }
 
 export type ThemeId = 'midnight' | 'vaporwave' | 'outback';
