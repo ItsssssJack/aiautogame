@@ -27,11 +27,12 @@ interface Combatant {
 
 const BASE_ARENA_SIZE = 600;
 const AVATAR_RADIUS = 30;
-const INITIAL_SPEED = 1; // Start MUCH slower
+const INITIAL_SPEED = 0.5; // Start even slower
 const LIVES = 3;
 const COLLISION_FLASH_DURATION = 10;
-const SPEED_INCREASE_INTERVAL = 5 * 60; // Increase speed every 5 seconds
+const SPEED_INCREASE_INTERVAL = 8 * 60; // Increase speed every 8 seconds (slower ramp up)
 const TARGET_GAME_DURATION = 60; // Target 60 seconds (1 minute)
+const WINNER_CELEBRATION_FRAMES = 180; // 3 seconds at 60fps to show winner before overlay
 
 const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   onBack,
@@ -47,6 +48,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const avatarImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const eliminationOrderRef = useRef(0);
   const playerEliminatedRef = useRef(false);
+  const winnerCelebrationFramesRef = useRef(0);
 
   const [winner, setWinner] = useState<Character | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -86,6 +88,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     frameCountRef.current = 0;
     eliminationOrderRef.current = 0;
     playerEliminatedRef.current = false;
+    winnerCelebrationFramesRef.current = 0;
     setScore(0);
     setPlacement(0);
 
@@ -185,9 +188,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     // Increment frame counter
     frameCountRef.current++;
 
-    // Increase speed every 5 seconds - ramp up aggressively to finish in ~1 minute
+    // Increase speed every 8 seconds - gradual ramp up to finish in ~1 minute
     if (frameCountRef.current % SPEED_INCREASE_INTERVAL === 0) {
-      speedMultiplierRef.current += 0.6; // Aggressive speed increase
+      speedMultiplierRef.current += 0.4; // Gradual speed increase
     }
 
     // Clear canvas
@@ -350,15 +353,38 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     // Check for winner
     if (activeCombatants.length === 1) {
       const finalWinner = activeCombatants[0];
-      const finalPlacement = finalWinner.character.id === selectedCharacterId ? 1 : (playerCombatant?.eliminated ? combatants.length - (playerCombatant.eliminationOrder || 0) + 1 : combatants.length);
-      const finalScore = calculateScore(finalPlacement, combatants.length, survivedSeconds);
 
-      if (!playerEliminatedRef.current) {
-        setScore(finalScore);
-        setPlacement(finalPlacement);
+      // If we just detected the winner, start the celebration countdown
+      if (winnerCelebrationFramesRef.current === 0) {
+        const finalPlacement = finalWinner.character.id === selectedCharacterId ? 1 : (playerCombatant?.eliminated ? combatants.length - (playerCombatant.eliminationOrder || 0) + 1 : combatants.length);
+        const finalScore = calculateScore(finalPlacement, combatants.length, survivedSeconds);
+
+        if (!playerEliminatedRef.current) {
+          setScore(finalScore);
+          setPlacement(finalPlacement);
+        }
       }
 
-      setWinner(finalWinner.character);
+      winnerCelebrationFramesRef.current++;
+
+      // Show celebration message on the arena
+      ctx.save();
+      ctx.fillStyle = 'rgba(34, 211, 238, 0.95)';
+      ctx.font = 'bold 32px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('🏆 WINNER 🏆', arenaSize / 2, arenaSize / 2 - 20);
+      ctx.font = 'bold 24px monospace';
+      ctx.fillText(finalWinner.character.name, arenaSize / 2, arenaSize / 2 + 20);
+      ctx.restore();
+
+      // After celebration period, show winner overlay
+      if (winnerCelebrationFramesRef.current >= WINNER_CELEBRATION_FRAMES) {
+        setWinner(finalWinner.character);
+        return;
+      }
+
+      // Continue game loop during celebration
+      animationFrameRef.current = requestAnimationFrame(gameLoop);
       return;
     }
 
@@ -660,8 +686,8 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
                   <p>• {fighterCount} fighters enter the arena</p>
                   <p>• Each has 3 lives (♥)</p>
                   <p>• Every collision = -1 life</p>
-                  <p>• Speed increases every 5 seconds</p>
-                  <p>• Match ends in ~1 minute</p>
+                  <p>• Speed increases gradually over time</p>
+                  <p>• Watch the full match play out!</p>
                   <p>• Last one standing wins</p>
                   <p className="text-cyan-400 font-bold mt-4">Higher placement = more points!</p>
                   <p className="text-purple-400 font-bold">You can spectate after elimination!</p>
