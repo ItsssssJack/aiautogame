@@ -107,16 +107,12 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
       </div>
 
       {/* Right Game Area */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden bg-black">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'block',
-          }}
+          className="absolute inset-0 w-full h-full"
         />
       </div>
     </div>
