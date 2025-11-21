@@ -281,9 +281,14 @@ const MainMenu: React.FC<MainMenuProps> = ({
         <div>↑↓ SWITCH LANES  •  ←→ DODGE  •  SPACE JUMP</div>
       </div>
 
-      <div className="mt-4 text-white/20 text-xs font-mono text-center space-y-1">
-        <div>AI Automations by <span className="text-cyan-400/60 font-bold">jack</span></div>
-        <div className="text-white/15">v{packageJson.version}</div>
+      <div className="mt-4 text-center space-y-2">
+        <div className="text-white/20 text-xs font-mono">
+          AI Automations by <span className="text-cyan-400/60 font-bold">jack</span>
+        </div>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-slate-800/40 to-slate-900/40 border border-white/5 backdrop-blur-sm">
+          <span className="text-[10px] text-cyan-400/40 font-mono tracking-wider">VERSION</span>
+          <span className="text-xs text-white/30 font-mono font-bold tracking-wide">{packageJson.version}</span>
+        </div>
       </div>
     </div>
   );
