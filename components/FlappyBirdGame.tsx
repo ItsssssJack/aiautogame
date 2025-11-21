@@ -49,16 +49,10 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
   // Render game to canvas
   const renderGame = () => {
     const canvas = canvasRef.current;
-    if (!canvas) {
-      console.log('Canvas ref not found');
-      return;
-    }
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.log('Canvas context not found');
-      return;
-    }
+    if (!ctx) return;
 
     // Clear canvas with sky gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
@@ -67,13 +61,17 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    console.log('Canvas rendering!');
+    // Ground
+    ctx.fillStyle = '#DEB887';
+    ctx.fillRect(0, CANVAS_HEIGHT - 80, CANVAS_WIDTH, 80);
+
+    // Grass
+    ctx.fillStyle = '#90EE90';
+    ctx.fillRect(0, CANVAS_HEIGHT - 80, CANVAS_WIDTH, 10);
   };
 
   // Animation loop - runs once, never restarts
   useEffect(() => {
-    console.log('Starting animation loop');
-
     const animate = () => {
       renderGame();
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -82,7 +80,6 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
     animate();
 
     return () => {
-      console.log('Cleaning up animation loop');
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -107,12 +104,17 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
       </div>
 
       {/* Right Game Area */}
-      <div className="flex-1 relative overflow-hidden bg-black">
+      <div className="flex-1 relative overflow-hidden bg-black flex items-center justify-center">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="absolute inset-0 w-full h-full"
+          style={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            width: 'auto',
+            height: 'auto',
+          }}
         />
       </div>
     </div>
