@@ -3,14 +3,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { GameState, LeaderboardEntry, ThemeConfig, ThemeId, Character } from './types';
 import { THEMES, LEVEL_SCORE_THRESHOLD, CHARACTERS, convertCommunityAvatarToCharacter } from './constants';
 import { fetchCommunityAvatars } from './lib/supabase';
-import { Track } from './lib/tracks';
 import GameCanvas from './components/GameCanvas';
 import MainMenu from './components/MainMenu';
 import GameOver from './components/GameOver';
 import Leaderboard from './components/Leaderboard';
 import AIEliminationGame from './components/AIEliminationGame';
-import DriftAttackGame from './components/DriftAttackGame';
-import TrackSelection from './components/TrackSelection';
+import FlappyBirdGame from './components/FlappyBirdGame';
 import GameModeSelection from './components/GameModeSelection';
 
 const App: React.FC = () => {
@@ -26,7 +24,6 @@ const App: React.FC = () => {
   const [eliminationWins, setEliminationWins] = useState(0); // Wins in AI Elimination mode
   const [communityAvatars, setCommunityAvatars] = useState<Character[]>([]); // User-uploaded community avatars
   const [allCharacters, setAllCharacters] = useState<Character[]>(CHARACTERS); // Default + community merged
-  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null); // For Drift Attack mode
 
   // Load community avatars and merge with defaults
   const loadCommunityAvatars = useCallback(async () => {
@@ -140,13 +137,8 @@ const App: React.FC = () => {
     localStorage.setItem('neon_runner_elimination_wins', newWins.toString());
   };
 
-  const startDriftAttack = () => {
-    setGameState(GameState.DRIFT_TRACK_SELECT);
-  };
-
-  const handleTrackSelect = (track: Track) => {
-    setSelectedTrack(track);
-    setGameState(GameState.DRIFT_ATTACK);
+  const startFlappyBird = () => {
+    setGameState(GameState.FLAPPY_BIRD);
   };
 
   const currentTheme = THEMES[currentThemeId];
@@ -201,7 +193,7 @@ const App: React.FC = () => {
         <GameModeSelection
           onSelectRacing={() => setGameState(GameState.MENU)}
           onSelectElimination={startElimination}
-          onSelectDriftAttack={startDriftAttack}
+          onSelectFlappyBird={startFlappyBird}
         />
       )}
 
@@ -249,20 +241,10 @@ const App: React.FC = () => {
         />
       )}
 
-      {gameState === GameState.DRIFT_TRACK_SELECT && (
-        <TrackSelection
-          onSelectTrack={handleTrackSelect}
-          onBack={() => setGameState(GameState.MODE_SELECTION)}
-          playerHighScore={lifetimePoints}
-        />
-      )}
-
-      {gameState === GameState.DRIFT_ATTACK && selectedTrack && (
-        <DriftAttackGame
-          selectedTrack={selectedTrack}
+      {gameState === GameState.FLAPPY_BIRD && (
+        <FlappyBirdGame
           selectedCharacter={selectedCharacter}
-          onBack={() => setGameState(GameState.DRIFT_TRACK_SELECT)}
-          playerHighScore={lifetimePoints}
+          onBack={() => setGameState(GameState.MODE_SELECTION)}
         />
       )}
     </div>

@@ -213,3 +213,37 @@ export async function fetchGlobalBestGhost(trackId: string) {
 
   return data;
 }
+
+// Flappy Bird leaderboard functions
+export async function fetchFlappyBirdLeaderboard() {
+  const { data, error } = await supabase
+    .from('flappy_bird_leaderboard')
+    .select('*')
+    .order('score', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error('Error fetching flappy bird leaderboard:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function saveFlappyBirdScore(entry: {
+  name: string;
+  score: number;
+  character_used?: string;
+}) {
+  const { data, error } = await supabase
+    .from('flappy_bird_leaderboard')
+    .insert([entry])
+    .select();
+
+  if (error) {
+    console.error('Error saving flappy bird score:', error);
+    throw error;
+  }
+
+  return data;
+}

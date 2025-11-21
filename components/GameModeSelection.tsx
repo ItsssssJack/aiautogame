@@ -5,13 +5,13 @@ import packageJson from '../package.json';
 interface GameModeSelectionProps {
   onSelectRacing: () => void;
   onSelectElimination: () => void;
-  onSelectDriftAttack: () => void;
+  onSelectFlappyBird: () => void;
 }
 
 const GameModeSelection: React.FC<GameModeSelectionProps> = ({
   onSelectRacing,
   onSelectElimination,
-  onSelectDriftAttack
+  onSelectFlappyBird
 }) => {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6 bg-gradient-to-br from-slate-900 via-slate-900 to-purple-900/20">
@@ -70,26 +70,26 @@ const GameModeSelection: React.FC<GameModeSelectionProps> = ({
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         </button>
 
-        {/* Drift Attack Mode */}
+        {/* Flappy Bird Mode */}
         <button
-          onClick={onSelectDriftAttack}
-          className="group relative p-6 rounded-2xl border-2 border-orange-500/30 bg-slate-800/50 backdrop-blur-md hover:border-orange-400 hover:bg-slate-700/50 transition-all duration-300 hover:scale-105 active:scale-95"
+          onClick={onSelectFlappyBird}
+          className="group relative p-6 rounded-2xl border-2 border-yellow-500/30 bg-slate-800/50 backdrop-blur-md hover:border-yellow-400 hover:bg-slate-700/50 transition-all duration-300 hover:scale-105 active:scale-95"
         >
           <div className="text-center">
-            <div className="text-5xl mb-3">💨</div>
-            <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-400 mb-2">
-              DRIFT ATTACK
+            <div className="text-5xl mb-3">🐦</div>
+            <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 mb-2">
+              FLAPPY BIRD
             </h2>
             <p className="text-white/70 text-xs mb-4 leading-relaxed">
-              Time attack racing with drift mechanics. Master perfect timing, chase ghost records, dominate the lap times.
+              Classic arcade action. Tap to flap through endless pipes. Simple controls, brutal difficulty. How far can you go?
             </p>
             <div className="space-y-1 text-[10px] text-white/50">
-              <div>✓ 3 Circuit Tracks</div>
-              <div>✓ Drift & Boost System</div>
-              <div>✓ Ghost Racing</div>
+              <div>✓ One-Touch Controls</div>
+              <div>✓ Endless Challenge</div>
+              <div>✓ Global Leaderboard</div>
             </div>
           </div>
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-yellow-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         </button>
 
         {/* Elimination Mode */}
