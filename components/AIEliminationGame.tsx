@@ -530,8 +530,40 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
       return;
     }
 
-    if (activeCombatants.length === 0) {
-      setWinner(null);
+    // Handle case where all fighters are eliminated (tied for last place)
+    if (activeCombatants.length === 0 && combatants.length > 0) {
+      // Find the fighters with the highest elimination order (eliminated last = winners)
+      const maxEliminationOrder = Math.max(...combatants.map(c => c.eliminationOrder || 0));
+      const winners = combatants.filter(c => c.eliminationOrder === maxEliminationOrder);
+
+      // Show celebration for tied winners
+      ctx.save();
+      ctx.fillStyle = 'rgba(34, 211, 238, 0.95)';
+      ctx.font = 'bold 32px monospace';
+      ctx.textAlign = 'center';
+
+      if (winners.length > 1) {
+        ctx.fillText('🏆 TIE! 🏆', arenaWidth / 2, arenaHeight / 2 - 40);
+        ctx.font = 'bold 20px monospace';
+        ctx.fillText('WINNERS:', arenaWidth / 2, arenaHeight / 2 - 10);
+        winners.forEach((w, i) => {
+          ctx.fillText(w.character.name, arenaWidth / 2, arenaHeight / 2 + 20 + (i * 25));
+        });
+      } else if (winners.length === 1) {
+        ctx.fillText('🏆 WINNER 🏆', arenaWidth / 2, arenaHeight / 2 - 20);
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText(winners[0].character.name, arenaWidth / 2, arenaHeight / 2 + 20);
+      }
+      ctx.restore();
+
+      // Build final leaderboard
+      const leaderboard = combatants.map(c => ({
+        character: c.character,
+        placement: c.eliminated ? combatants.length - (c.eliminationOrder || 0) + 1 : 1
+      })).sort((a, b) => a.placement - b.placement);
+
+      setFinalLeaderboard(leaderboard);
+      setWinner(winners[0]?.character || combatants[0].character);
       return;
     }
 
@@ -1022,7 +1054,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
       <div className="flex flex-col items-center justify-center flex-1">
         {/* Header */}
-        <div className="mb-4 text-center">
+        <div className="mb-4 text-center relative">
           <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500 mb-2">
             AI ELIMINATION
           </h1>
@@ -1030,6 +1062,17 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
           <p className="text-cyan-400 text-xs mt-2">
             Playing as: {CHARACTERS.find(c => c.id === selectedCharacterId)?.name} • {selectedDifficulty.name} • {fighterCount} Fighters
           </p>
+
+          {/* STANDINGS button moved here */}
+          {gameStarted && (
+            <button
+              onClick={() => setShowInGameLeaderboard(!showInGameLeaderboard)}
+              className="absolute top-0 right-0 px-4 py-2 bg-slate-800/90 border-2 border-cyan-500 rounded-lg text-white font-bold hover:bg-slate-700 transition-all z-10 flex items-center gap-2"
+            >
+              <span className="text-lg">📊</span>
+              {showInGameLeaderboard ? 'HIDE' : 'STANDINGS'}
+            </button>
+          )}
         </div>
 
         {/* Main game area - horizontal layout with eliminated panel on left */}
@@ -1093,20 +1136,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               className="border-4 border-cyan-500 rounded-lg shadow-2xl"
             />
 
-          {/* Leaderboard button - always visible during game */}
-          {gameStarted && (
-            <button
-              onClick={() => setShowInGameLeaderboard(!showInGameLeaderboard)}
-              className="absolute top-4 right-4 px-4 py-2 bg-slate-800/90 border-2 border-cyan-500 rounded-lg text-white font-bold hover:bg-slate-700 transition-all z-10 flex items-center gap-2"
-            >
-              <span className="text-lg">📊</span>
-              {showInGameLeaderboard ? 'HIDE' : 'STANDINGS'}
-            </button>
-          )}
-
           {/* In-game leaderboard overlay */}
           {showInGameLeaderboard && gameStarted && (
-            <div className="absolute top-16 right-4 w-80 max-h-96 overflow-y-auto bg-slate-800/95 border-2 border-cyan-500 rounded-xl p-4 z-10 shadow-2xl">
+            <div className="absolute top-0 right-0 w-80 max-h-96 overflow-y-auto bg-slate-800/95 border-2 border-cyan-500 rounded-xl p-4 z-20 shadow-2xl">
               <h3 className="text-xl font-bold text-cyan-400 mb-3 text-center">CURRENT STANDINGS</h3>
               <div className="space-y-2">
                 {combatantsRef.current
