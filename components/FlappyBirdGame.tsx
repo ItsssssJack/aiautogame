@@ -67,6 +67,12 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
     rotation: 0,
   });
 
+  // Game state refs (for animation loop)
+  const gameStartedRef = useRef(false);
+  const gameOverRef = useRef(false);
+  const scoreRef = useRef(0);
+  const bestScoreRef = useRef(0);
+
   // Game start grace period
   const gameStartTimeRef = useRef<number>(0);
 
@@ -78,7 +84,9 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
   useEffect(() => {
     const saved = localStorage.getItem('flappy_bird_best_score');
     if (saved) {
-      setBestScore(parseInt(saved, 10));
+      const score = parseInt(saved, 10);
+      setBestScore(score);
+      bestScoreRef.current = score;
     }
 
     loadLeaderboard();
@@ -144,7 +152,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
     // Don't allow flapping during countdown
     if (countdown !== null) return;
 
-    if (!gameStarted) {
+    if (!gameStartedRef.current) {
       // Start countdown
       setCountdown(3);
       let count = 3;
@@ -155,6 +163,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
           clearInterval(countdownInterval);
           setCountdown(null);
           setGameStarted(true);
+          gameStartedRef.current = true;
           gameStartTimeRef.current = Date.now();
           pipesRef.current = [];
           lastPipeSpawn.current = Date.now();
@@ -165,12 +174,15 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
       return;
     }
 
-    if (gameOver) {
+    if (gameOverRef.current) {
       // Restart
       birdRef.current = { y: CANVAS_HEIGHT / 2, velocity: 0, rotation: 0 };
       pipesRef.current = [];
+      scoreRef.current = 0;
       setScore(0);
+      gameOverRef.current = false;
       setGameOver(false);
+      gameStartedRef.current = false;
       setGameStarted(false);
       setShowLeaderboard(false);
       setPlayerName('');
@@ -181,8 +193,8 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
   };
 
   // Game loop
-  const updateGame = useCallback(() => {
-    if (!gameStarted || gameOver) return;
+  const updateGame = () => {
+    if (!gameStartedRef.current || gameOverRef.current) return;
 
     const bird = birdRef.current;
 
@@ -226,14 +238,15 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
       // Check if bird passed pipe
       if (!pipe.passed && pipe.x + PIPE_WIDTH < BIRD_X) {
         pipe.passed = true;
-        setScore(prev => {
-          const newScore = prev + 1;
-          if (newScore > bestScore) {
-            setBestScore(newScore);
-            localStorage.setItem('flappy_bird_best_score', newScore.toString());
-          }
-          return newScore;
-        });
+        const newScore = scoreRef.current + 1;
+        scoreRef.current = newScore;
+        setScore(newScore);
+
+        if (newScore > bestScoreRef.current) {
+          bestScoreRef.current = newScore;
+          setBestScore(newScore);
+          localStorage.setItem('flappy_bird_best_score', newScore.toString());
+        }
       }
 
       // Check collision
@@ -252,11 +265,11 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
       // Remove off-screen pipes
       return pipe.x > -PIPE_WIDTH;
     });
-  }, [gameStarted, gameOver, bestScore]);
+  };
 
   const endGame = () => {
+    gameOverRef.current = true;
     setGameOver(true);
-    // TODO: Submit to Supabase leaderboard
   };
 
   // Render game
@@ -392,7 +405,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
     ctx.fillRect(0, CANVAS_HEIGHT - 80, CANVAS_WIDTH, 10);
   };
 
-  // Animation loop
+  // Animation loop - runs once on mount, never restarts
   useEffect(() => {
     const animate = () => {
       updateGame();
@@ -407,7 +420,8 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [updateGame]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex flex-row h-screen overflow-hidden">
