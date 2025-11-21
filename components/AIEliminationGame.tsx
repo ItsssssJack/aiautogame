@@ -610,7 +610,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     }
   }, [winner, placement, onWin]);
 
-  const unlockedCount = Math.min(10 + eliminationWins, CHARACTERS.length); // Start with 10, unlock more through wins
+  const unlockedCount = CHARACTERS.length; // All characters unlocked from the start
 
   // Save score to Supabase
   const handleSaveScore = async () => {
@@ -1138,7 +1138,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
           {/* In-game leaderboard overlay */}
           {showInGameLeaderboard && gameStarted && (
-            <div className="absolute top-0 right-0 w-80 max-h-96 overflow-y-auto bg-slate-800/95 border-2 border-cyan-500 rounded-xl p-4 z-20 shadow-2xl">
+            <div className="absolute top-0 -right-[340px] w-80 max-h-96 overflow-y-auto bg-slate-800/95 border-2 border-cyan-500 rounded-xl p-4 z-20 shadow-2xl">
               <h3 className="text-xl font-bold text-cyan-400 mb-3 text-center">CURRENT STANDINGS</h3>
               <div className="space-y-2">
                 {combatantsRef.current
