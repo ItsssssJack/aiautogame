@@ -1,0 +1,5 @@
+{
+  "name": "Automation Racer",
+  "description": "A fast-paced, lane-switching arcade game with levels and leaderboards.",
+  "requestFramePermissions": []
+}
