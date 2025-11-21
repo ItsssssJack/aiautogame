@@ -549,13 +549,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, theme, character, on
     }
     if (type.startsWith('powerup')) size = POWERUP_SIZE;
     
-    // Rival Spawning Logic
+    // Rival & NPC Car Spawning Logic
     if (type === 'obstacle') {
       // Logic: Unlock 1 rival every 2 levels (2, 4, 6, 8)
       // Available rivals index = Floor(Level / 2) - 1
       const unlockedCount = Math.floor(levelRef.current / 2);
 
-      if (unlockedCount > 0 && Math.random() > 0.7) { // 30% chance for obstacle to be a Rival if unlocked
+      if (unlockedCount > 0 && Math.random() > 0.3) { // 70% chance for obstacle to be a Rival if unlocked (increased from 30%)
         const maxIndex = Math.min(unlockedCount - 1, rivalsRef.current.length - 1);
         const rivalIndex = Math.floor(Math.random() * (maxIndex + 1));
         const rival = rivalsRef.current[rivalIndex];
@@ -574,9 +574,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, theme, character, on
           }
         }
       } else {
-        // Non-rival obstacles: Assign random avatar from ALL characters
+        // Non-rival NPC cars: Assign random avatar from ALL characters
+        // All obstacles are now cars with character avatars for variety
         const randomChar = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
         avatarUrl = randomChar.avatarUrl;
+        // Give them random colors for variety
+        const npcColors = [
+          { color: '#ef4444', accent: '#991b1b' },  // red
+          { color: '#f59e0b', accent: '#92400e' },  // orange
+          { color: '#10b981', accent: '#065f46' },  // green
+          { color: '#3b82f6', accent: '#1e3a8a' },  // blue
+          { color: '#8b5cf6', accent: '#5b21b6' },  // purple
+          { color: '#ec4899', accent: '#9f1239' },  // pink
+        ];
+        const randomColor = npcColors[Math.floor(Math.random() * npcColors.length)];
+        color = randomColor.color;
+        accentColor = randomColor.accent;
       }
     }
 
@@ -901,6 +914,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, theme, character, on
     decorRef.current.forEach(d => drawDecorElement(ctx, d, isNight));
 
     entitiesRef.current.forEach(ent => {
+      // Safety check: skip undefined entities (can happen during power-up collection)
+      if (!ent) return;
+
       if (ent.type === 'coin') {
         const floatY = Math.sin(framesRef.current * 0.1) * 5;
         ctx.save();
@@ -918,27 +934,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, theme, character, on
       } else if (ent.type.startsWith('powerup')) {
         drawPowerUp(ctx, ent.x, ent.y, ent.type);
       } else {
-        // OBSTACLE RENDERING
-        if (ent.isRival) {
-          drawCar(ctx, ent.x, ent.y, ent.color, ent.accentColor || '#fff', 180, false, isNight, ent.avatarUrl);
-        } else {
-          if (theme.roadType === 'dirt') {
-            const size = ent.width;
-            ctx.save();
-            ctx.translate(ent.x, ent.y);
-            ctx.fillStyle = theme.colors.obstacle;
-            ctx.beginPath();
-            ctx.moveTo(-size/3, -size/2);
-            ctx.lineTo(size/2, -size/3);
-            ctx.lineTo(size/3, size/2);
-            ctx.lineTo(-size/2, size/4);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-          } else {
-            drawCar(ctx, ent.x, ent.y, theme.colors.obstacle, theme.colors.obstacleAccent, 180, false, isNight, ent.avatarUrl);
-          }
-        }
+        // OBSTACLE RENDERING - All obstacles are now cars with avatars
+        drawCar(ctx, ent.x, ent.y, ent.color, ent.accentColor || '#fff', 180, false, isNight, ent.avatarUrl);
       }
     });
 
