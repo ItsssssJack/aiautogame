@@ -294,19 +294,36 @@ const MainMenu: React.FC<MainMenuProps> = ({
         )}
       </div>
       
-      {/* Power Up Legend */}
-      <div className="flex gap-8 mb-6 bg-slate-900/60 p-4 rounded-xl backdrop-blur-sm border border-white/5">
-        <div className="flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-cyan-500 border-2 border-white mb-1 shadow-[0_0_15px_rgba(6,182,212,0.6)] flex items-center justify-center text-[10px] font-bold">S</div>
-          <span className="text-[10px] uppercase font-bold text-cyan-200 tracking-wider">Shield</span>
+      {/* Game Legend */}
+      <div className="flex flex-col gap-3 mb-6">
+        {/* Power-Ups */}
+        <div className="bg-slate-900/60 p-4 rounded-xl backdrop-blur-sm border border-white/5">
+          <div className="text-[9px] uppercase font-bold text-white/40 tracking-widest mb-3 text-center">Power-Ups</div>
+          <div className="flex gap-8 justify-center">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-cyan-500 border-2 border-white mb-1 shadow-[0_0_15px_rgba(6,182,212,0.6)] flex items-center justify-center text-[10px] font-bold">S</div>
+              <span className="text-[10px] uppercase font-bold text-cyan-200 tracking-wider">Shield</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-white mb-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] flex items-center justify-center text-[10px] font-bold">⏱</div>
+              <span className="text-[10px] uppercase font-bold text-purple-200 tracking-wider">Slow Mo</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 rounded-full bg-red-500 border-2 border-orange-400 mb-1 shadow-[0_0_15px_rgba(239,68,68,0.6)] flex items-center justify-center text-[10px] font-bold">💥</div>
+              <span className="text-[10px] uppercase font-bold text-red-200 tracking-wider">Blast</span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-purple-500 border-2 border-white mb-1 shadow-[0_0_15px_rgba(168,85,247,0.6)] flex items-center justify-center text-[10px] font-bold">⏱</div>
-          <span className="text-[10px] uppercase font-bold text-purple-200 tracking-wider">Slow Mo</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="w-8 h-8 rounded-full bg-red-500 border-2 border-orange-400 mb-1 shadow-[0_0_15px_rgba(239,68,68,0.6)] flex items-center justify-center text-[10px] font-bold">💥</div>
-          <span className="text-[10px] uppercase font-bold text-red-200 tracking-wider">Blast</span>
+
+        {/* Bonus Points */}
+        <div className="bg-slate-900/60 p-3 rounded-xl backdrop-blur-sm border border-white/5">
+          <div className="flex gap-3 items-center justify-center">
+            <div className="text-[9px] uppercase font-bold text-white/40 tracking-widest">Bonus Points:</div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 border-2 border-yellow-200 shadow-[0_0_15px_rgba(250,204,21,0.6)] flex items-center justify-center text-xs">💰</div>
+              <span className="text-[10px] uppercase font-bold text-yellow-200 tracking-wider">Coins</span>
+            </div>
+          </div>
         </div>
       </div>
 

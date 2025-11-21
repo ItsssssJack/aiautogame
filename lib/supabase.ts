@@ -157,3 +157,59 @@ export async function uploadCommunityAvatar(file: File, name: string, color: str
     throw error;
   }
 }
+
+// Drift Attack leaderboard functions
+export async function fetchDriftLeaderboard(trackId: string) {
+  const { data, error } = await supabase
+    .from('drift_leaderboard')
+    .select('*')
+    .eq('track_id', trackId)
+    .order('total_time', { ascending: true })
+    .limit(100);
+
+  if (error) {
+    console.error('Error fetching drift leaderboard:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function saveDriftTime(entry: {
+  name: string;
+  character_used?: string;
+  track_id: string;
+  total_time: number;
+  lap_times: any[];
+  perfect_laps: number;
+  ghost_data: any[];
+}) {
+  const { data, error } = await supabase
+    .from('drift_leaderboard')
+    .insert([entry])
+    .select();
+
+  if (error) {
+    console.error('Error saving drift time:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function fetchGlobalBestGhost(trackId: string) {
+  const { data, error } = await supabase
+    .from('drift_leaderboard')
+    .select('ghost_data, total_time, name')
+    .eq('track_id', trackId)
+    .order('total_time', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error) {
+    console.error('Error fetching global best ghost:', error);
+    return null;
+  }
+
+  return data;
+}
