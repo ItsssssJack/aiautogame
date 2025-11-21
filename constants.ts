@@ -13,7 +13,7 @@ export const POWERUP_SIZE = 34;
 
 // Physics & Gameplay
 export const LANE_TRANSITION_SPEED = 0.3; // Higher = Faster snap to center
-export const INITIAL_SPEED = 6.5; // Increased for faster game start
+export const INITIAL_SPEED = 5; // Balanced start - not too slow, not too fast
 export const MAX_SPEED = 20; // Reduced from 30 for less chaos
 export const SPEED_INCREMENT = 0.3; // Reduced from 0.5 for smoother progression
 export const LEVEL_SCORE_THRESHOLD = 250; // Score needed to level up
