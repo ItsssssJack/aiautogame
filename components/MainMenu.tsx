@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { THEMES, CHARACTERS } from '../constants';
 import { ThemeConfig, ThemeId, Character } from '../types';
+import packageJson from '../../package.json';
 
 interface MainMenuProps {
   onStart: () => void;
@@ -280,8 +281,9 @@ const MainMenu: React.FC<MainMenuProps> = ({
         <div>↑↓ SWITCH LANES  •  ←→ DODGE  •  SPACE JUMP</div>
       </div>
 
-      <div className="mt-4 text-white/20 text-xs font-mono text-center">
+      <div className="mt-4 text-white/20 text-xs font-mono text-center space-y-1">
         <div>AI Automations by <span className="text-cyan-400/60 font-bold">jack</span></div>
+        <div className="text-white/15">v{packageJson.version}</div>
       </div>
     </div>
   );
