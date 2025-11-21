@@ -28,11 +28,19 @@ interface Combatant {
 const BASE_ARENA_SIZE = 600;
 const AVATAR_RADIUS = 30;
 const INITIAL_SPEED = 0.5; // Start even slower
-const LIVES = 3;
+const LIVES = 10; // Increased from 3 to 10
 const COLLISION_FLASH_DURATION = 10;
 const SPEED_INCREASE_INTERVAL = 8 * 60; // Increase speed every 8 seconds (slower ramp up)
 const TARGET_GAME_DURATION = 60; // Target 60 seconds (1 minute)
 const WINNER_CELEBRATION_FRAMES = 180; // 3 seconds at 60fps to show winner before overlay
+
+// AI difficulty levels
+const DIFFICULTY_LEVELS = [
+  { id: 'easy', name: 'Neural Novice', description: '8 AI fighters', fighterCount: 8, color: 'from-green-400 to-green-600' },
+  { id: 'medium', name: 'Algorithm Ace', description: '12 AI fighters', fighterCount: 12, color: 'from-blue-400 to-blue-600' },
+  { id: 'hard', name: 'Deep Learning Master', description: '16 AI fighters', fighterCount: 16, color: 'from-orange-400 to-orange-600' },
+  { id: 'nightmare', name: 'Singularity Mode', description: '22 AI fighters', fighterCount: 22, color: 'from-red-500 to-purple-600' }
+];
 
 const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   onBack,
@@ -52,14 +60,18 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
   const [winner, setWinner] = useState<Character | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
-  const [showCharacterSelect, setShowCharacterSelect] = useState(true);
+  const [showDifficultySelect, setShowDifficultySelect] = useState(true);
+  const [showCharacterSelect, setShowCharacterSelect] = useState(false);
   const [showNameEntry, setShowNameEntry] = useState(false);
+  const [showPostGameLeaderboard, setShowPostGameLeaderboard] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [selectedCharacterId, setSelectedCharacterId] = useState(initialSelectedCharacterId);
+  const [selectedDifficulty, setSelectedDifficulty] = useState(DIFFICULTY_LEVELS[0]);
   const [fighterCount, setFighterCount] = useState(8);
   const [score, setScore] = useState(0);
   const [placement, setPlacement] = useState(0);
   const [unlockedTop5, setUnlockedTop5] = useState(false);
+  const [finalLeaderboard, setFinalLeaderboard] = useState<Array<{character: Character, placement: number}>>([]);
 
   // Calculate arena size based on fighter count
   const arenaSize = Math.min(BASE_ARENA_SIZE + (fighterCount - 8) * 30, 900); // Max 900px
@@ -169,9 +181,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
     ctx.restore();
 
-    // Draw lives below avatar
+    // Draw lives below avatar (10 lives total)
     ctx.font = 'bold 12px monospace';
-    ctx.fillStyle = lives === 3 ? '#22c55e' : lives === 2 ? '#f59e0b' : '#ef4444';
+    ctx.fillStyle = lives >= 7 ? '#22c55e' : lives >= 4 ? '#f59e0b' : '#ef4444';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText(`♥ ${lives}`, x, y + radius + 5);
@@ -254,16 +266,30 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
           c1.lives--;
           c2.lives--;
 
+          // Track if both are eliminated in the same collision (tied placement)
+          const c1JustEliminated = c1.lives <= 0 && !c1.eliminated;
+          const c2JustEliminated = c2.lives <= 0 && !c2.eliminated;
+
           // Check for elimination and assign order
-          if (c1.lives <= 0 && !c1.eliminated) {
+          if (c1JustEliminated && c2JustEliminated) {
+            // Both eliminated at same time - same placement
+            eliminationOrderRef.current++;
             c1.eliminated = true;
-            eliminationOrderRef.current++;
-            c1.eliminationOrder = eliminationOrderRef.current;
-          }
-          if (c2.lives <= 0 && !c2.eliminated) {
             c2.eliminated = true;
-            eliminationOrderRef.current++;
+            c1.eliminationOrder = eliminationOrderRef.current;
             c2.eliminationOrder = eliminationOrderRef.current;
+          } else {
+            // Separate eliminations
+            if (c1JustEliminated) {
+              c1.eliminated = true;
+              eliminationOrderRef.current++;
+              c1.eliminationOrder = eliminationOrderRef.current;
+            }
+            if (c2JustEliminated) {
+              c2.eliminated = true;
+              eliminationOrderRef.current++;
+              c2.eliminationOrder = eliminationOrderRef.current;
+            }
           }
 
           // Separate the combatants
@@ -377,8 +403,17 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
       ctx.fillText(finalWinner.character.name, arenaSize / 2, arenaSize / 2 + 20);
       ctx.restore();
 
-      // After celebration period, show winner overlay
+      // After celebration period, calculate final leaderboard and show winner overlay
       if (winnerCelebrationFramesRef.current >= WINNER_CELEBRATION_FRAMES) {
+        // Build final leaderboard
+        const leaderboard = combatants.map(c => ({
+          character: c.character,
+          placement: c.eliminated
+            ? combatants.length - (c.eliminationOrder || 0) + 1
+            : 1 // Winner gets placement 1
+        })).sort((a, b) => a.placement - b.placement);
+
+        setFinalLeaderboard(leaderboard);
         setWinner(finalWinner.character);
         return;
       }
@@ -456,6 +491,91 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     }
   };
 
+  // Post-game leaderboard screen
+  if (showPostGameLeaderboard) {
+    return (
+      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6 overflow-y-auto">
+        <div className="max-w-3xl w-full bg-slate-800/80 backdrop-blur-md rounded-2xl p-8 border-2 border-cyan-500/30 my-8">
+          <h2 className="text-4xl font-black text-white mb-2 text-center">
+            FINAL STANDINGS
+          </h2>
+          <p className="text-cyan-400 text-center mb-6">{selectedDifficulty.name} • {fighterCount} Fighters</p>
+
+          <div className="space-y-2 mb-6 max-h-96 overflow-y-auto">
+            {finalLeaderboard.map((entry, index) => {
+              const isPlayer = entry.character.id === selectedCharacterId;
+              return (
+                <div
+                  key={`${entry.character.id}-${index}`}
+                  className={`flex items-center gap-4 p-3 rounded-lg border ${
+                    isPlayer
+                      ? 'bg-cyan-900/40 border-cyan-500 shadow-[0_0_20px_rgba(34,211,238,0.3)]'
+                      : 'bg-slate-800/50 border-slate-700'
+                  }`}
+                >
+                  <div className={`w-12 h-12 flex items-center justify-center rounded-full font-bold text-lg shrink-0 ${
+                    entry.placement === 1
+                      ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900'
+                      : entry.placement === 2
+                        ? 'bg-gradient-to-br from-slate-300 to-slate-500 text-slate-900'
+                        : entry.placement === 3
+                          ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-slate-900'
+                          : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    #{entry.placement}
+                  </div>
+
+                  <img
+                    src={entry.character.avatarUrl}
+                    alt={entry.character.name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-white/20"
+                  />
+
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-mono font-bold text-lg ${isPlayer ? 'text-cyan-300' : 'text-white'}`}>
+                        {entry.character.name}
+                      </span>
+                      {isPlayer && (
+                        <span className="bg-cyan-500 text-white text-xs font-bold px-2 py-0.5 rounded">YOU</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {entry.placement === 1 && <span className="text-2xl">🏆</span>}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setShowPostGameLeaderboard(false);
+                setShowDifficultySelect(true);
+                setGameStarted(false);
+                setWinner(null);
+                setShowNameEntry(false);
+                setPlayerName('');
+                setUnlockedTop5(false);
+                setFinalLeaderboard([]);
+              }}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-lg"
+            >
+              PLAY AGAIN
+            </button>
+            <button
+              onClick={onBack}
+              className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg"
+            >
+              MAIN MENU
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Name entry screen
   if (showNameEntry) {
     return (
@@ -498,25 +618,12 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
             <button
               onClick={async () => {
                 await handleSaveScore();
-                setShowCharacterSelect(true);
-                setGameStarted(false);
-                setWinner(null);
                 setShowNameEntry(false);
-                setPlayerName('');
-                setUnlockedTop5(false);
+                setShowPostGameLeaderboard(true);
               }}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-lg"
+              className="w-full px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-lg"
             >
-              FIGHT AGAIN
-            </button>
-            <button
-              onClick={async () => {
-                await handleSaveScore();
-                onBack();
-              }}
-              className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg"
-            >
-              MAIN MENU
+              VIEW FINAL STANDINGS →
             </button>
           </div>
 
@@ -530,94 +637,55 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     );
   }
 
-  // Character selection screen
-  if (showCharacterSelect) {
+  // Difficulty selection screen
+  if (showDifficultySelect) {
     return (
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6">
-        <div className="w-full max-w-5xl flex flex-col" style={{maxHeight: 'calc(100vh - 2rem)'}}>
-          <div className="flex justify-between items-center mb-4 shrink-0">
-            <div>
-              <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500">
-                SELECT YOUR FIGHTER
-              </h1>
-              <p className="text-cyan-400 text-xs mt-1">
-                {unlockedCount} / {CHARACTERS.length} FIGHTERS UNLOCKED
-              </p>
-            </div>
+        <div className="w-full max-w-4xl">
+          <div className="text-center mb-8">
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500 mb-2">
+              SELECT DIFFICULTY
+            </h1>
+            <p className="text-slate-400 text-sm">Choose your AI challenge level</p>
           </div>
 
-          {/* Fighter count selector */}
-          <div className="mb-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700 shrink-0">
-            <label className="block text-white/80 text-sm font-bold mb-2">
-              NUMBER OF FIGHTERS IN BATTLE
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="8"
-                max={CHARACTERS.length}
-                value={fighterCount}
-                onChange={(e) => setFighterCount(Number(e.target.value))}
-                className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                style={{
-                  background: `linear-gradient(to right, #06b6d4 0%, #06b6d4 ${((fighterCount - 8) / (CHARACTERS.length - 8)) * 100}%, #334155 ${((fighterCount - 8) / (CHARACTERS.length - 8)) * 100}%, #334155 100%)`
-                }}
-              />
-              <span className="text-2xl font-bold text-cyan-400 font-mono w-12 text-center">
-                {fighterCount}
-              </span>
-            </div>
-            <p className="text-white/40 text-xs mt-2">
-              Minimum 8 fighters • Arena scales with size
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {DIFFICULTY_LEVELS.map((diff) => {
+              const isSelected = selectedDifficulty.id === diff.id;
+              return (
+                <button
+                  key={diff.id}
+                  onClick={() => {
+                    setSelectedDifficulty(diff);
+                    setFighterCount(diff.fighterCount);
+                  }}
+                  className={`p-6 rounded-2xl border-2 transition-all duration-300 ${
+                    isSelected
+                      ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_30px_rgba(34,211,238,0.4)] scale-105'
+                      : 'border-slate-700 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800 hover:scale-102'
+                  }`}
+                >
+                  <div className={`inline-block px-4 py-2 rounded-full font-bold text-lg mb-3 bg-gradient-to-r ${diff.color} text-white shadow-lg`}>
+                    {diff.name}
+                  </div>
+                  <p className="text-2xl font-mono font-bold text-white mb-2">{diff.description}</p>
+                  <p className="text-slate-400 text-sm">
+                    {diff.id === 'easy' && 'Perfect for beginners'}
+                    {diff.id === 'medium' && 'A balanced challenge'}
+                    {diff.id === 'hard' && 'For experienced players'}
+                    {diff.id === 'nightmare' && 'The ultimate test'}
+                  </p>
+                  {isSelected && (
+                    <div className="mt-3 text-cyan-400 font-bold flex items-center justify-center gap-2">
+                      <span className="text-xl">✓</span> SELECTED
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex-1 min-h-0 mb-4">
-            <div className="grid grid-cols-6 lg:grid-cols-8 gap-2 h-full content-start overflow-y-auto">
-              {CHARACTERS.map((char, index) => {
-                const isLocked = index >= unlockedCount;
-                const isSelected = selectedCharacterId === char.id;
-                return (
-                  <button
-                    key={char.id}
-                    onClick={() => !isLocked && setSelectedCharacterId(char.id)}
-                    disabled={isLocked}
-                    className={`relative group flex flex-col items-center p-2 rounded-lg border-2 transition-all duration-200 ${
-                      isSelected
-                        ? 'border-cyan-400 bg-cyan-900/20 shadow-[0_0_15px_rgba(34,211,238,0.3)] z-10'
-                        : isLocked
-                          ? 'border-slate-800 bg-slate-900/50 opacity-60 cursor-not-allowed'
-                          : 'border-slate-700 bg-slate-800/40 hover:border-slate-500 hover:bg-slate-700'
-                    }`}
-                  >
-                    <img
-                      src={char.avatarUrl}
-                      alt={char.name}
-                      className="w-10 h-10 rounded-full object-cover shadow-lg border-2 border-white/20 mb-1.5 transition-transform group-hover:scale-105"
-                    />
-                    <span className={`text-[9px] font-bold font-mono truncate w-full text-center transition-colors ${isSelected ? 'text-cyan-300' : 'text-slate-400'}`}>
-                      {char.name}
-                    </span>
-
-                    {isLocked && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-xl backdrop-blur-[2px]">
-                        <span className="text-lg mb-0.5 drop-shadow-md">🔒</span>
-                        <span className="text-[9px] text-white font-bold bg-purple-500/80 px-1.5 py-0.5 rounded font-mono shadow-sm">
-                          TOP 5
-                        </span>
-                      </div>
-                    )}
-
-                    {isSelected && !isLocked && (
-                      <div className="absolute inset-0 border-2 border-cyan-400 rounded-xl animate-pulse opacity-50" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex gap-4 shrink-0">
+          <div className="flex gap-4">
             <button
               onClick={onBack}
               className="px-6 py-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white/40 text-white font-semibold text-sm transition-all backdrop-blur-md"
@@ -625,10 +693,88 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               ← BACK
             </button>
             <button
-              onClick={() => setShowCharacterSelect(false)}
-              className="flex-1 py-3 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => {
+                setShowDifficultySelect(false);
+                setShowCharacterSelect(true);
+              }}
+              className="flex-1 py-4 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold text-xl rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              CONTINUE TO ARENA
+              SELECT YOUR FIGHTER →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Character selection screen (simplified)
+  if (showCharacterSelect) {
+    return (
+      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6">
+        <div className="w-full max-w-4xl">
+          <div className="text-center mb-6">
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500">
+              SELECT YOUR FIGHTER
+            </h1>
+            <p className="text-cyan-400 text-sm mt-2">
+              {selectedDifficulty.name} • {unlockedCount} / {CHARACTERS.length} FIGHTERS UNLOCKED
+            </p>
+          </div>
+
+          <div className="grid grid-cols-6 lg:grid-cols-8 gap-3 mb-6 max-h-96 overflow-y-auto p-2">
+            {CHARACTERS.map((char, index) => {
+              const isLocked = index >= unlockedCount;
+              const isSelected = selectedCharacterId === char.id;
+              return (
+                <button
+                  key={char.id}
+                  onClick={() => !isLocked && setSelectedCharacterId(char.id)}
+                  disabled={isLocked}
+                  className={`relative group flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-200 ${
+                    isSelected
+                      ? 'border-cyan-400 bg-cyan-900/20 shadow-[0_0_15px_rgba(34,211,238,0.3)] scale-110 z-10'
+                      : isLocked
+                        ? 'border-slate-800 bg-slate-900/50 opacity-60 cursor-not-allowed'
+                        : 'border-slate-700 bg-slate-800/40 hover:border-slate-500 hover:bg-slate-700 hover:scale-105'
+                  }`}
+                >
+                  <img
+                    src={char.avatarUrl}
+                    alt={char.name}
+                    className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-white/20 mb-2"
+                  />
+                  <span className={`text-[10px] font-bold font-mono truncate w-full text-center ${isSelected ? 'text-cyan-300' : 'text-slate-400'}`}>
+                    {char.name}
+                  </span>
+
+                  {isLocked && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-xl backdrop-blur-[2px]">
+                      <span className="text-2xl mb-1">🔒</span>
+                      <span className="text-[9px] text-white font-bold bg-purple-500/80 px-2 py-0.5 rounded font-mono">
+                        TOP 5
+                      </span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              onClick={() => {
+                setShowCharacterSelect(false);
+                setShowDifficultySelect(true);
+              }}
+              className="px-6 py-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white/40 text-white font-semibold text-sm transition-all backdrop-blur-md"
+            >
+              ← CHANGE DIFFICULTY
+            </button>
+            <button
+              onClick={() => setShowCharacterSelect(false)}
+              className="flex-1 py-4 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold text-xl rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              ENTER ARENA →
             </button>
           </div>
         </div>
@@ -684,7 +830,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
                 <h2 className="text-2xl font-bold text-white mb-4">HOW TO PLAY</h2>
                 <div className="text-white/80 text-sm space-y-2 mb-6">
                   <p>• {fighterCount} fighters enter the arena</p>
-                  <p>• Each has 3 lives (♥)</p>
+                  <p>• Each has 10 lives (♥)</p>
                   <p>• Every collision = -1 life</p>
                   <p>• Speed increases gradually over time</p>
                   <p>• Watch the full match play out!</p>
@@ -705,7 +851,11 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
         {/* Back button */}
         <button
-          onClick={() => setShowCharacterSelect(true)}
+          onClick={() => {
+            setShowCharacterSelect(true);
+            setGameStarted(false);
+            setWinner(null);
+          }}
           className="px-6 py-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white/40 text-white font-semibold text-sm transition-all backdrop-blur-md"
         >
           ← CHANGE FIGHTER
