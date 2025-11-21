@@ -726,9 +726,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, theme, character, on
       if (framesRef.current % 30 === 0) spawnDecor();
 
       // --- Update Entities ---
-      entitiesRef.current.forEach(e => e.x -= effectiveSpeed);
+      entitiesRef.current.forEach(e => {
+        if (!e) return; // Safety check for undefined entities
+        e.x -= effectiveSpeed;
+      });
       decorRef.current.forEach(d => d.x -= effectiveSpeed);
-      entitiesRef.current = entitiesRef.current.filter(e => e.x > -100);
+      entitiesRef.current = entitiesRef.current.filter(e => e && e.x > -100);
       decorRef.current = decorRef.current.filter(d => d.x > -100);
 
       // --- Combo Timer Decay ---
