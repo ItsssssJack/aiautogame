@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Character } from '../types';
 import { CHARACTERS } from '../constants';
 import { saveEliminationScore } from '../lib/supabase';
+import { getRankLevel } from '../utils/rankingSystem';
 
 interface AIEliminationGameProps {
   onBack: () => void;
@@ -64,6 +65,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
   const [showNameEntry, setShowNameEntry] = useState(false);
   const [showPostGameLeaderboard, setShowPostGameLeaderboard] = useState(false);
+  const [showInGameLeaderboard, setShowInGameLeaderboard] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [selectedCharacterId, setSelectedCharacterId] = useState(initialSelectedCharacterId);
   const [selectedDifficulty, setSelectedDifficulty] = useState(DIFFICULTY_LEVELS[0]);
@@ -471,7 +473,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     }
   }, [winner, placement, onWin]);
 
-  const unlockedCount = Math.min(3 + eliminationWins, CHARACTERS.length);
+  const unlockedCount = CHARACTERS.length; // All characters unlocked
 
   // Save score to Supabase
   const handleSaveScore = async () => {
@@ -578,6 +580,8 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
   // Name entry screen
   if (showNameEntry) {
+    const rank = getRankLevel(score);
+
     return (
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6">
         <div className="max-w-md w-full bg-slate-800/80 backdrop-blur-md rounded-2xl p-8 border-2 border-cyan-500/30">
@@ -587,6 +591,21 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
           <p className="text-cyan-400 text-center mb-2">
             Placement: #{placement} / {fighterCount}
           </p>
+
+          {/* Rank Achievement Badge */}
+          <div className={`
+            flex items-center justify-center gap-2 px-4 py-2 rounded-full font-bold text-base mb-4 mx-auto
+            bg-gradient-to-r ${rank.gradient}
+            shadow-xl
+            border-2 border-white/20
+          `}
+          style={{
+            boxShadow: `0 4px 20px ${rank.color}60, inset 0 1px 2px rgba(255,255,255,0.3)`
+          }}>
+            <span className="text-2xl drop-shadow-lg">{rank.emoji}</span>
+            <span className="text-white drop-shadow-lg tracking-wide">RANK: {rank.title.toUpperCase()}</span>
+          </div>
+
           {unlockedTop5 && (
             <p className="text-green-400 font-bold text-center mb-4 animate-pulse">
               🎉 NEW FIGHTER UNLOCKED!
@@ -762,13 +781,19 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
           <div className="flex gap-4">
             <button
+              onClick={onBack}
+              className="px-6 py-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white/40 text-white font-semibold text-sm transition-all backdrop-blur-md"
+            >
+              ← BACK TO MENU
+            </button>
+            <button
               onClick={() => {
                 setShowCharacterSelect(false);
                 setShowDifficultySelect(true);
               }}
               className="px-6 py-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white/40 text-white font-semibold text-sm transition-all backdrop-blur-md"
             >
-              ← CHANGE DIFFICULTY
+              ← DIFFICULTY
             </button>
             <button
               onClick={() => setShowCharacterSelect(false)}
@@ -805,6 +830,79 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
             height={arenaSize}
             className="border-4 border-cyan-500 rounded-lg shadow-2xl"
           />
+
+          {/* Leaderboard button - always visible during game */}
+          {gameStarted && (
+            <button
+              onClick={() => setShowInGameLeaderboard(!showInGameLeaderboard)}
+              className="absolute top-4 right-4 px-4 py-2 bg-slate-800/90 border-2 border-cyan-500 rounded-lg text-white font-bold hover:bg-slate-700 transition-all z-10 flex items-center gap-2"
+            >
+              <span className="text-lg">📊</span>
+              {showInGameLeaderboard ? 'HIDE' : 'STANDINGS'}
+            </button>
+          )}
+
+          {/* In-game leaderboard overlay */}
+          {showInGameLeaderboard && gameStarted && (
+            <div className="absolute top-16 right-4 w-80 max-h-96 overflow-y-auto bg-slate-800/95 border-2 border-cyan-500 rounded-xl p-4 z-10 shadow-2xl">
+              <h3 className="text-xl font-bold text-cyan-400 mb-3 text-center">CURRENT STANDINGS</h3>
+              <div className="space-y-2">
+                {combatantsRef.current
+                  .filter(c => !c.eliminated)
+                  .sort((a, b) => b.lives - a.lives)
+                  .map((c, index) => {
+                    const isPlayer = c.character.id === selectedCharacterId;
+                    return (
+                      <div
+                        key={c.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg ${
+                          isPlayer ? 'bg-cyan-900/50 border border-cyan-500' : 'bg-slate-700/50'
+                        }`}
+                      >
+                        <span className="text-white font-bold w-6">#{index + 1}</span>
+                        <img src={c.character.avatarUrl} alt={c.character.name} className="w-8 h-8 rounded-full" />
+                        <span className={`flex-1 text-sm font-mono ${isPlayer ? 'text-cyan-300 font-bold' : 'text-white'}`}>
+                          {c.character.name}
+                        </span>
+                        <span className={`font-bold ${c.lives >= 7 ? 'text-green-400' : c.lives >= 4 ? 'text-orange-400' : 'text-red-400'}`}>
+                          {c.lives}♥
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+              {combatantsRef.current.filter(c => c.eliminated).length > 0 && (
+                <>
+                  <div className="border-t border-slate-600 my-3"></div>
+                  <h4 className="text-sm font-bold text-red-400 mb-2">ELIMINATED</h4>
+                  <div className="space-y-1">
+                    {combatantsRef.current
+                      .filter(c => c.eliminated)
+                      .sort((a, b) => (b.eliminationOrder || 0) - (a.eliminationOrder || 0))
+                      .map((c) => {
+                        const isPlayer = c.character.id === selectedCharacterId;
+                        const eliminationPlacement = combatantsRef.current.length - (c.eliminationOrder || 0) + 1;
+                        return (
+                          <div
+                            key={c.id}
+                            className={`flex items-center gap-2 p-2 rounded-lg opacity-60 ${
+                              isPlayer ? 'bg-cyan-900/30 border border-cyan-700' : 'bg-slate-700/30'
+                            }`}
+                          >
+                            <span className="text-slate-400 font-bold w-6 text-xs">#{eliminationPlacement}</span>
+                            <img src={c.character.avatarUrl} alt={c.character.name} className="w-6 h-6 rounded-full grayscale" />
+                            <span className={`flex-1 text-xs font-mono ${isPlayer ? 'text-cyan-400' : 'text-slate-400'}`}>
+                              {c.character.name}
+                            </span>
+                            <span className="text-red-500 text-xs">💀</span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Winner overlay */}
           {winner && !showNameEntry && (
