@@ -245,6 +245,7 @@ const App: React.FC = () => {
         <FlappyBirdGame
           selectedCharacter={selectedCharacter}
           onBack={() => setGameState(GameState.MODE_SELECTION)}
+          allCharacters={allCharacters}
         />
       )}
     </div>

@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Character } from '../constants';
+import { Character } from '../types';
+import { CHARACTERS } from '../constants';
 import { saveFlappyBirdScore, fetchFlappyBirdLeaderboard } from '../lib/supabase';
 
 interface FlappyBirdGameProps {
   selectedCharacter: Character;
   onBack: () => void;
+  allCharacters?: Character[];
 }
 
 interface LeaderboardEntry {
@@ -22,8 +24,9 @@ interface Pipe {
 }
 
 const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
-  selectedCharacter,
+  selectedCharacter: initialCharacter,
   onBack,
+  allCharacters = CHARACTERS,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
@@ -38,28 +41,38 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
   const [playerName, setPlayerName] = useState('');
   const [submittingScore, setSubmittingScore] = useState(false);
 
+  // Character selection
+  const [selectedCharacter, setSelectedCharacter] = useState<Character>(initialCharacter);
+  const [showCharacterSelect, setShowCharacterSelect] = useState(false);
+
+  // Countdown
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Constants - fixed game dimensions that scale to fit
+  const CANVAS_WIDTH = 1200;
+  const CANVAS_HEIGHT = 800;
+  const BIRD_SIZE = 40;
+  const BIRD_X = 200;
+  const GRAVITY = 0.5;
+  const FLAP_STRENGTH = -9;
+  const PIPE_WIDTH = 80;
+  const PIPE_GAP = 200;
+  const PIPE_SPEED = 3;
+  const PIPE_SPAWN_INTERVAL = 1800; // ms
+
   // Bird state
   const birdRef = useRef({
-    y: 250,
+    y: CANVAS_HEIGHT / 2,
     velocity: 0,
     rotation: 0,
   });
 
+  // Game start grace period
+  const gameStartTimeRef = useRef<number>(0);
+
   // Pipes state
   const pipesRef = useRef<Pipe[]>([]);
   const lastPipeSpawn = useRef(0);
-
-  // Constants
-  const CANVAS_WIDTH = 400;
-  const CANVAS_HEIGHT = 600;
-  const BIRD_SIZE = 40;
-  const BIRD_X = 80;
-  const GRAVITY = 0.6;
-  const FLAP_STRENGTH = -10;
-  const PIPE_WIDTH = 60;
-  const PIPE_GAP = 150;
-  const PIPE_SPEED = 3;
-  const PIPE_SPAWN_INTERVAL = 1800; // ms
 
   // Load best score and leaderboard
   useEffect(() => {
@@ -126,15 +139,33 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
   }, [gameStarted, gameOver]);
 
   const flap = () => {
+    // Don't allow flapping during countdown
+    if (countdown !== null) return;
+
     if (!gameStarted) {
-      setGameStarted(true);
-      pipesRef.current = [];
-      lastPipeSpawn.current = Date.now();
+      // Start countdown
+      setCountdown(3);
+      let count = 3;
+      const countdownInterval = setInterval(() => {
+        count--;
+        setCountdown(count);
+        if (count === 0) {
+          clearInterval(countdownInterval);
+          setCountdown(null);
+          setGameStarted(true);
+          gameStartTimeRef.current = Date.now();
+          pipesRef.current = [];
+          lastPipeSpawn.current = Date.now();
+          // Give initial upward velocity
+          birdRef.current.velocity = FLAP_STRENGTH * 0.5;
+        }
+      }, 1000);
+      return;
     }
 
     if (gameOver) {
       // Restart
-      birdRef.current = { y: 250, velocity: 0, rotation: 0 };
+      birdRef.current = { y: CANVAS_HEIGHT / 2, velocity: 0, rotation: 0 };
       pipesRef.current = [];
       setScore(0);
       setGameOver(false);
@@ -153,8 +184,12 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
 
     const bird = birdRef.current;
 
-    // Apply gravity
-    bird.velocity += GRAVITY;
+    // Apply gravity with grace period at start
+    const timeSinceStart = Date.now() - gameStartTimeRef.current;
+    const gracePeriod = 800; // 800ms grace period
+    const gravityMultiplier = timeSinceStart < gracePeriod ? 0.3 : 1.0;
+
+    bird.velocity += GRAVITY * gravityMultiplier;
     bird.y += bird.velocity;
 
     // Update rotation based on velocity
@@ -225,10 +260,16 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
   // Render game
   const renderGame = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.log('Canvas ref not found');
+      return;
+    }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.log('Canvas context not found');
+      return;
+    }
 
     // Clear canvas - sky background
     const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
@@ -367,41 +408,99 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
   }, [updateGame]);
 
   return (
-    <div className="relative w-full h-screen bg-gradient-to-b from-cyan-200 to-blue-300 overflow-hidden flex items-center justify-center">
-      {/* Back Button */}
-      <button
-        onClick={onBack}
-        className="absolute top-6 left-6 z-20 px-4 py-2 rounded-full bg-slate-800/80 border border-white/20 text-white/80 hover:text-white hover:border-white/40 transition-all backdrop-blur-md"
-      >
-        ← BACK
-      </button>
+    <div className="flex flex-row h-screen overflow-hidden">
+      {/* Left Sidebar - Fixed 180px width */}
+      <div className="w-[180px] h-full flex-shrink-0 bg-gradient-to-b from-slate-800 to-slate-900 flex flex-col p-4 gap-4">
+        {/* Back Button */}
+        <button
+          onClick={onBack}
+          className="px-4 py-2 rounded-xl bg-slate-700 border border-white/20 text-white/80 hover:text-white hover:border-white/40 transition-all font-bold text-sm"
+        >
+          ← BACK
+        </button>
 
-      {/* Score Display */}
-      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20">
-        <div className="text-center">
-          <div className="text-7xl font-black text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.3)]">
-            {score}
+        {/* Character Selection */}
+        <div className="flex-1 bg-slate-700/50 border border-white/10 rounded-xl p-3 overflow-y-auto">
+          <div className="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-3 text-center">
+            Robo Birds
           </div>
-          <div className="text-sm text-white/80 font-bold">BEST: {bestScore}</div>
+          <div className="space-y-2">
+            {allCharacters.slice(0, 8).map((char) => (
+              <button
+                key={char.id}
+                onClick={() => setSelectedCharacter(char)}
+                className={`w-full p-2 rounded-lg border-2 transition-all ${
+                  char.id === selectedCharacter.id
+                    ? 'border-yellow-400 bg-yellow-400/20'
+                    : 'border-white/20 hover:border-white/40'
+                }`}
+              >
+                <div
+                  className="w-12 h-12 rounded-full mx-auto border-2 border-white flex items-center justify-center"
+                  style={{ backgroundColor: char.color }}
+                >
+                  {char.avatarUrl && (
+                    <img src={char.avatarUrl} alt={char.name} className="w-9 h-9 rounded-full" />
+                  )}
+                </div>
+              </button>
+            ))}
+            {allCharacters.length > 8 && (
+              <button
+                onClick={() => setShowCharacterSelect(true)}
+                className="w-full p-2 rounded-lg border-2 border-white/20 hover:border-white/40 text-white/60 text-xs"
+              >
+                +{allCharacters.length - 8} More
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Game Canvas */}
-      <div className="relative">
+      {/* Right Game Area - Fills remaining space */}
+      <div className="flex-1 relative overflow-hidden bg-slate-900">
+        {/* Game Canvas - base layer */}
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="border-4 border-slate-800 rounded-lg shadow-2xl"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 0
+          }}
         />
 
+        {/* Score Display */}
+        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none">
+          <div className="text-center bg-black/30 backdrop-blur-md rounded-xl px-6 py-4 border border-white/10">
+            <div className="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Score</div>
+            <div className="text-6xl font-black text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.3)]">
+              {score}
+            </div>
+            <div className="text-sm text-yellow-400 font-bold mt-1">BEST: {bestScore}</div>
+          </div>
+        </div>
+
+        {/* Countdown Overlay */}
+        {countdown !== null && countdown > 0 && (
+          <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/50 backdrop-blur-sm">
+            <div className="text-9xl font-black text-white animate-pulse drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)]">
+              {countdown}
+            </div>
+          </div>
+        )}
+
         {/* Start Screen */}
-        {!gameStarted && !gameOver && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm rounded-lg">
+        {!gameStarted && !gameOver && countdown === null && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10">
             <div className="text-white text-center p-8">
-              <div className="text-6xl mb-4">🐦</div>
+              <div className="text-6xl mb-4">🤖</div>
               <h2 className="text-4xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-400">
-                FLAPPY BIRD
+                ROBO BIRD
               </h2>
               <p className="text-lg mb-6 text-white/90">
                 Click or press SPACE to flap
@@ -415,7 +514,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
 
         {/* Game Over Screen */}
         {gameOver && !showLeaderboard && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg p-4">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm p-4 z-10">
             <div className="bg-slate-800 rounded-2xl p-8 border-2 border-red-500/50 text-center max-w-md w-full">
               <h2 className="text-4xl font-black text-red-400 mb-4">GAME OVER</h2>
               <div className="mb-6">
@@ -466,7 +565,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
 
         {/* Leaderboard Screen */}
         {showLeaderboard && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm rounded-lg p-4 overflow-auto">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-auto z-10">
             <div className="bg-slate-800 rounded-2xl p-6 border-2 border-cyan-500/50 max-w-lg w-full max-h-[90%] overflow-auto">
               <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 mb-6 text-center">
                 🏆 LEADERBOARD
@@ -515,16 +614,63 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
             </div>
           </div>
         )}
-      </div>
 
-      {/* Instructions */}
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20">
-        <div className="bg-black/50 backdrop-blur-md rounded-xl px-6 py-3 border border-white/10">
-          <div className="text-white/80 text-xs text-center">
-            SPACE / CLICK / TAP to Flap
+        {/* Instructions */}
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none">
+          <div className="bg-black/50 backdrop-blur-md rounded-xl px-6 py-3 border border-white/10">
+            <div className="text-white/80 text-xs text-center">
+              SPACE / CLICK / TAP to Flap
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Character Selection Modal - Full screen overlay */}
+      {showCharacterSelect && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-800 rounded-2xl p-6 border-2 border-yellow-500/50 max-w-2xl w-full max-h-[80%] overflow-auto mx-4">
+            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 mb-6 text-center">
+              🤖 CHOOSE YOUR ROBO BIRD
+            </h2>
+
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              {allCharacters.map((char) => (
+                <button
+                  key={char.id}
+                  onClick={() => {
+                    setSelectedCharacter(char);
+                    setShowCharacterSelect(false);
+                  }}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    char.id === selectedCharacter.id
+                      ? 'border-yellow-400 bg-yellow-400/20 scale-105'
+                      : 'border-white/20 bg-slate-700/50 hover:border-white/40 hover:scale-105'
+                  }`}
+                >
+                  <div
+                    className="w-16 h-16 rounded-full mx-auto mb-2 border-2 border-white flex items-center justify-center"
+                    style={{ backgroundColor: char.color }}
+                  >
+                    {char.avatarUrl && (
+                      <img src={char.avatarUrl} alt={char.name} className="w-12 h-12 rounded-full" />
+                    )}
+                  </div>
+                  <div className="text-white text-xs font-bold text-center truncate">
+                    {char.name}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowCharacterSelect(false)}
+              className="w-full px-6 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold shadow-lg transform transition-all hover:scale-105 active:scale-95"
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
