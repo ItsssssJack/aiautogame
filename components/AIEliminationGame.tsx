@@ -27,10 +27,11 @@ interface Combatant {
 
 const BASE_ARENA_SIZE = 600;
 const AVATAR_RADIUS = 30;
-const INITIAL_SPEED = 3;
+const INITIAL_SPEED = 1; // Start MUCH slower
 const LIVES = 3;
 const COLLISION_FLASH_DURATION = 10;
-const SPEED_INCREASE_INTERVAL = 20 * 60; // 20 seconds at 60fps
+const SPEED_INCREASE_INTERVAL = 5 * 60; // Increase speed every 5 seconds
+const TARGET_GAME_DURATION = 60; // Target 60 seconds (1 minute)
 
 const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   onBack,
@@ -184,9 +185,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     // Increment frame counter
     frameCountRef.current++;
 
-    // Increase speed every 20 seconds
+    // Increase speed every 5 seconds - ramp up aggressively to finish in ~1 minute
     if (frameCountRef.current % SPEED_INCREASE_INTERVAL === 0) {
-      speedMultiplierRef.current += 0.3;
+      speedMultiplierRef.current += 0.6; // Aggressive speed increase
     }
 
     // Clear canvas
@@ -659,7 +660,8 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
                   <p>• {fighterCount} fighters enter the arena</p>
                   <p>• Each has 3 lives (♥)</p>
                   <p>• Every collision = -1 life</p>
-                  <p>• Speed increases every 20 seconds</p>
+                  <p>• Speed increases every 5 seconds</p>
+                  <p>• Match ends in ~1 minute</p>
                   <p>• Last one standing wins</p>
                   <p className="text-cyan-400 font-bold mt-4">Higher placement = more points!</p>
                   <p className="text-purple-400 font-bold">You can spectate after elimination!</p>
