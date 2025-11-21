@@ -800,7 +800,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   // Game Mode selection screen
   if (showGameModeSelect) {
     return (
-      <div className="absolute inset-0 z-20 flex flex-col bg-slate-900/95 p-6">
+      <div className="absolute inset-0 z-20 flex flex-col bg-gradient-to-br from-slate-900 via-slate-900 to-purple-900/30 p-6">
         {/* HOME BUTTON */}
         <button
           onClick={onBack}
@@ -809,12 +809,32 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
           <span>🏠</span> HOME
         </button>
 
-        <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500 mb-2">
-              SELECT GAME MODE
-            </h1>
-            <p className="text-slate-400 text-sm">Choose your battle style</p>
+        {/* VERSION BADGE - Top Right */}
+        <div className="absolute top-6 right-6 z-50">
+          <div className="group relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-slate-800/80 to-slate-900/80 border border-cyan-500/30 backdrop-blur-md shadow-lg hover:border-cyan-400/50 transition-all duration-300">
+              <span className="text-[10px] text-cyan-400/60 font-mono tracking-wider uppercase">Version</span>
+              <span className="text-sm text-cyan-300 font-mono font-bold tracking-wide">1.0.0</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-center">
+          {/* Enhanced Title Section */}
+          <div className="text-center mb-10 relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-purple-500/10 to-blue-500/10 blur-3xl"></div>
+            <div className="relative">
+              <h1 className="text-6xl md:text-7xl font-black mb-3">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-purple-400 to-pink-400 animate-pulse">
+                  AI ELIMINATION
+                </span>
+              </h1>
+              <div className="inline-block px-6 py-2 rounded-full bg-gradient-to-r from-slate-800/60 to-slate-900/60 border border-purple-500/30 backdrop-blur-sm mb-3">
+                <p className="text-purple-300 text-lg font-bold tracking-wide">SELECT GAME MODE</p>
+              </div>
+              <p className="text-slate-400 text-sm mt-2">Choose your battle style and dominate the arena</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
