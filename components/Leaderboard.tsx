@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { LeaderboardEntry } from '../types';
 import { fetchRacingLeaderboard } from '../lib/supabase';
+import { getRankLevel } from '../utils/rankingSystem';
 
 interface LeaderboardProps {
   scores: LeaderboardEntry[];
@@ -78,39 +79,62 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ scores: localScores, onBack }
           </div>
         ) : (
           <div className="space-y-3">
-            {sortedScores.map((entry, index) => (
-              <div
-                key={index}
-                className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-cyan-500/50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`
-                    w-10 h-10 flex items-center justify-center rounded-full font-display font-bold text-xl
-                    ${index === 0 ? 'bg-yellow-500 text-slate-900' :
-                      index === 1 ? 'bg-slate-300 text-slate-900' :
-                      index === 2 ? 'bg-amber-700 text-slate-900' : 'bg-slate-700 text-slate-400'}
-                  `}>
-                    {index + 1}
-                  </div>
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-mono font-bold text-white">{entry.name}</span>
-                      {entry.rankTitle && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-700 text-cyan-300 border border-cyan-900">
-                          {entry.rankTitle}
-                        </span>
+            {sortedScores.map((entry, index) => {
+              const rank = getRankLevel(entry.score);
+              return (
+                <div
+                  key={index}
+                  className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 group"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    {/* Placement Badge */}
+                    <div className={`
+                      w-10 h-10 flex items-center justify-center rounded-full font-display font-bold text-xl shrink-0 transition-transform group-hover:scale-110
+                      ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-slate-900 shadow-lg shadow-yellow-500/50 animate-pulse' :
+                        index === 1 ? 'bg-gradient-to-br from-slate-300 to-slate-500 text-slate-900 shadow-lg shadow-slate-300/30' :
+                        index === 2 ? 'bg-gradient-to-br from-amber-600 to-amber-800 text-slate-900 shadow-lg shadow-amber-600/30' :
+                        'bg-slate-700 text-slate-400'}
+                    `}>
+                      {index + 1}
+                    </div>
+
+                    {/* Player Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-2xl font-mono font-bold text-white">{entry.name}</span>
+
+                        {/* Rank Level Badge - Visually Gorgeous */}
+                        <div className={`
+                          flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-sm
+                          bg-gradient-to-r ${rank.gradient}
+                          shadow-lg transform transition-all duration-300
+                          border-2 border-white/20
+                          group-hover:scale-105
+                        `}
+                        style={{
+                          boxShadow: `0 4px 20px ${rank.color}40, inset 0 1px 2px rgba(255,255,255,0.3)`
+                        }}>
+                          <span className="text-xl drop-shadow-md">{rank.emoji}</span>
+                          <span className="text-white drop-shadow-md tracking-wide">{rank.title}</span>
+                        </div>
+                      </div>
+
+                      {entry.aiComment && (
+                        <p className="text-slate-400 text-sm italic mt-1">"{entry.aiComment}"</p>
                       )}
                     </div>
-                    {entry.aiComment && (
-                      <p className="text-slate-400 text-sm italic">"{entry.aiComment}"</p>
-                    )}
+                  </div>
+
+                  {/* Score */}
+                  <div className="text-right">
+                    <span className="text-2xl font-mono text-cyan-400 font-bold block group-hover:text-cyan-300 transition-colors">
+                      {entry.score.toLocaleString()}
+                    </span>
+                    <span className="text-xs text-slate-500">points</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-2xl font-mono text-cyan-400 block">{entry.score.toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -25,7 +25,7 @@ interface Combatant {
   eliminationOrder?: number;
 }
 
-const ARENA_SIZE = 600;
+const BASE_ARENA_SIZE = 600;
 const AVATAR_RADIUS = 30;
 const INITIAL_SPEED = 3;
 const LIVES = 3;
@@ -45,6 +45,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const frameCountRef = useRef(0);
   const avatarImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const eliminationOrderRef = useRef(0);
+  const playerEliminatedRef = useRef(false);
 
   const [winner, setWinner] = useState<Character | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -56,6 +57,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const [score, setScore] = useState(0);
   const [placement, setPlacement] = useState(0);
   const [unlockedTop5, setUnlockedTop5] = useState(false);
+
+  // Calculate arena size based on fighter count
+  const arenaSize = Math.min(BASE_ARENA_SIZE + (fighterCount - 8) * 30, 900); // Max 900px
 
   // Preload avatar images
   useEffect(() => {
@@ -80,6 +84,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     speedMultiplierRef.current = 1;
     frameCountRef.current = 0;
     eliminationOrderRef.current = 0;
+    playerEliminatedRef.current = false;
     setScore(0);
     setPlacement(0);
 
@@ -88,13 +93,13 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
     selectedFighters.forEach((char, index) => {
       const angle = (index / selectedFighters.length) * Math.PI * 2;
-      const startRadius = ARENA_SIZE * 0.3;
+      const startRadius = arenaSize * 0.3;
 
       activeCombatants.push({
         id: char.id,
         character: char,
-        x: ARENA_SIZE / 2 + Math.cos(angle) * startRadius,
-        y: ARENA_SIZE / 2 + Math.sin(angle) * startRadius,
+        x: arenaSize / 2 + Math.cos(angle) * startRadius,
+        y: arenaSize / 2 + Math.sin(angle) * startRadius,
         vx: (Math.random() - 0.5) * INITIAL_SPEED * 2,
         vy: (Math.random() - 0.5) * INITIAL_SPEED * 2,
         lives: LIVES,
@@ -186,12 +191,12 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
     // Clear canvas
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, ARENA_SIZE, ARENA_SIZE);
+    ctx.fillRect(0, 0, arenaSize, arenaSize);
 
     // Draw arena border
     ctx.strokeStyle = '#22d3ee';
     ctx.lineWidth = 4;
-    ctx.strokeRect(2, 2, ARENA_SIZE - 4, ARENA_SIZE - 4);
+    ctx.strokeRect(2, 2, arenaSize - 4, arenaSize - 4);
 
     const combatants = combatantsRef.current;
     const activeCombatants = combatants.filter(c => !c.eliminated);
@@ -206,16 +211,16 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
       if (combatant.x - combatant.radius < 0) {
         combatant.x = combatant.radius;
         combatant.vx = Math.abs(combatant.vx);
-      } else if (combatant.x + combatant.radius > ARENA_SIZE) {
-        combatant.x = ARENA_SIZE - combatant.radius;
+      } else if (combatant.x + combatant.radius > arenaSize) {
+        combatant.x = arenaSize - combatant.radius;
         combatant.vx = -Math.abs(combatant.vx);
       }
 
       if (combatant.y - combatant.radius < 0) {
         combatant.y = combatant.radius;
         combatant.vy = Math.abs(combatant.vy);
-      } else if (combatant.y + combatant.radius > ARENA_SIZE) {
-        combatant.y = ARENA_SIZE - combatant.radius;
+      } else if (combatant.y + combatant.radius > arenaSize) {
+        combatant.y = arenaSize - combatant.radius;
         combatant.vy = -Math.abs(combatant.vy);
       }
 
@@ -300,7 +305,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
       ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
       ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'right';
-      ctx.fillText(`💀 ELIMINATED: ${eliminatedCount}`, ARENA_SIZE - 10, 30);
+      ctx.fillText(`💀 ELIMINATED: ${eliminatedCount}`, arenaSize - 10, 30);
     }
 
     // Draw speed multiplier indicator
@@ -322,15 +327,37 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     ctx.fillStyle = 'rgba(34, 211, 238, 0.9)';
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(`SCORE: ${currentScore}`, ARENA_SIZE / 2, 30);
+    ctx.fillText(`SCORE: ${currentScore}`, arenaSize / 2, 30);
 
-    // Check for winner
-    if (activeCombatants.length === 1) {
-      const finalPlacement = activeCombatants[0].character.id === selectedCharacterId ? 1 : combatants.length;
+    // Show "SPECTATING" if player is eliminated
+    if (playerEliminatedRef.current) {
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('👁️ SPECTATING', arenaSize / 2, 50);
+    }
+
+    // Check if player just got eliminated (only set once)
+    if (!playerEliminatedRef.current && playerCombatant?.eliminated) {
+      playerEliminatedRef.current = true;
+      const finalPlacement = combatants.length - (playerCombatant.eliminationOrder || 0) + 1;
       const finalScore = calculateScore(finalPlacement, combatants.length, survivedSeconds);
       setScore(finalScore);
       setPlacement(finalPlacement);
-      setWinner(activeCombatants[0].character);
+    }
+
+    // Check for winner
+    if (activeCombatants.length === 1) {
+      const finalWinner = activeCombatants[0];
+      const finalPlacement = finalWinner.character.id === selectedCharacterId ? 1 : (playerCombatant?.eliminated ? combatants.length - (playerCombatant.eliminationOrder || 0) + 1 : combatants.length);
+      const finalScore = calculateScore(finalPlacement, combatants.length, survivedSeconds);
+
+      if (!playerEliminatedRef.current) {
+        setScore(finalScore);
+        setPlacement(finalPlacement);
+      }
+
+      setWinner(finalWinner.character);
       return;
     }
 
@@ -339,27 +366,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
       return;
     }
 
-    // Check if player is eliminated
-    const playerStillAlive = activeCombatants.some(c => c.character.id === selectedCharacterId);
-    if (!playerStillAlive && !winner) {
-      const playerCombatant = combatants.find(c => c.character.id === selectedCharacterId);
-      if (playerCombatant?.eliminated) {
-        const finalPlacement = combatants.length - (playerCombatant.eliminationOrder || 0) + 1;
-        const finalScore = calculateScore(finalPlacement, combatants.length, survivedSeconds);
-        setScore(finalScore);
-        setPlacement(finalPlacement);
-        // Continue watching but mark as eliminated
-        setTimeout(() => {
-          if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-          }
-          setShowNameEntry(true);
-        }, 2000);
-        return;
-      }
-    }
-
-    // Continue loop
+    // Continue loop regardless of player status
     animationFrameRef.current = requestAnimationFrame(gameLoop);
   };
 
@@ -534,7 +541,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               </span>
             </div>
             <p className="text-white/40 text-xs mt-2">
-              Minimum 8 fighters • More fighters = higher potential score
+              Minimum 8 fighters • Arena scales with size
             </p>
           </div>
 
@@ -621,8 +628,8 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
         <div className="relative mb-6">
           <canvas
             ref={canvasRef}
-            width={ARENA_SIZE}
-            height={ARENA_SIZE}
+            width={arenaSize}
+            height={arenaSize}
             className="border-4 border-cyan-500 rounded-lg shadow-2xl"
           />
 
@@ -655,6 +662,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
                   <p>• Speed increases every 20 seconds</p>
                   <p>• Last one standing wins</p>
                   <p className="text-cyan-400 font-bold mt-4">Higher placement = more points!</p>
+                  <p className="text-purple-400 font-bold">You can spectate after elimination!</p>
                 </div>
               </div>
               <button

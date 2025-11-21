@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { LeaderboardEntry } from '../types';
 import { getScoreCommentary } from '../services/geminiService';
 import { saveRacingScore } from '../lib/supabase';
+import { getRankLevel } from '../utils/rankingSystem';
 
 interface GameOverProps {
   score: number;
@@ -72,11 +73,27 @@ const GameOver: React.FC<GameOverProps> = ({ score, time, onRetry, onMenu, onSub
     setSaving(false);
   };
 
+  const rank = getRankLevel(score);
+
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-md z-20 p-6 text-center">
       <h2 className="text-5xl font-display font-bold text-red-500 mb-2 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">
         SYSTEM CRASH
       </h2>
+
+      {/* Rank Achievement Badge */}
+      <div className={`
+        flex items-center gap-2 px-6 py-3 rounded-full font-bold text-lg mb-4
+        bg-gradient-to-r ${rank.gradient}
+        shadow-2xl transform
+        border-2 border-white/30 animate-bounce
+      `}
+      style={{
+        boxShadow: `0 8px 32px ${rank.color}60, inset 0 2px 4px rgba(255,255,255,0.4)`
+      }}>
+        <span className="text-3xl drop-shadow-lg">{rank.emoji}</span>
+        <span className="text-white drop-shadow-lg tracking-wide">RANK: {rank.title}</span>
+      </div>
 
       <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 w-full max-w-md mb-6">
         <div className="grid grid-cols-2 gap-4 mb-4">

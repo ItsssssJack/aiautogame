@@ -11,10 +11,11 @@ export interface CommentaryResult {
 
 export const getScoreCommentary = async (score: number, durationSeconds: number): Promise<CommentaryResult> => {
   if (!ai) {
-    return {
-      rankTitle: "Local Hero",
-      comment: "API Key missing - but great effort regardless!"
-    };
+    // Fallback when API is not configured
+    if (score < 500) return { rankTitle: "Road Rookie", comment: "Every champion starts somewhere!" };
+    if (score < 2000) return { rankTitle: "Lane Cruiser", comment: "Solid run, keep pushing!" };
+    if (score < 5000) return { rankTitle: "Speed Demon", comment: "Impressive moves out there!" };
+    return { rankTitle: "Neon Legend", comment: "Absolutely crushing it!" };
   }
 
   try {
