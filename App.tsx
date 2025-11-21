@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { GameState, LeaderboardEntry, ThemeConfig, ThemeId } from './types';
-import { THEMES, LEVEL_SCORE_THRESHOLD, CHARACTERS } from './constants';
+import { GameState, LeaderboardEntry, ThemeConfig, ThemeId, Character } from './types';
+import { THEMES, LEVEL_SCORE_THRESHOLD, CHARACTERS, convertCommunityAvatarToCharacter } from './constants';
+import { fetchCommunityAvatars } from './lib/supabase';
 import GameCanvas from './components/GameCanvas';
 import MainMenu from './components/MainMenu';
 import GameOver from './components/GameOver';
@@ -20,6 +21,23 @@ const App: React.FC = () => {
   const [highScore, setHighScore] = useState(0);
   const [lifetimePoints, setLifetimePoints] = useState(0); // Total cumulative points earned across all games
   const [eliminationWins, setEliminationWins] = useState(0); // Wins in AI Elimination mode
+  const [communityAvatars, setCommunityAvatars] = useState<Character[]>([]); // User-uploaded community avatars
+  const [allCharacters, setAllCharacters] = useState<Character[]>(CHARACTERS); // Default + community merged
+
+  // Load community avatars and merge with defaults
+  const loadCommunityAvatars = useCallback(async () => {
+    try {
+      const dbRecords = await fetchCommunityAvatars();
+      const communityChars = dbRecords.map(convertCommunityAvatarToCharacter);
+      setCommunityAvatars(communityChars);
+      // Merge: default characters first, then community avatars
+      setAllCharacters([...CHARACTERS, ...communityChars]);
+    } catch (error) {
+      console.error('Failed to load community avatars:', error);
+      // On error, just use default characters
+      setAllCharacters(CHARACTERS);
+    }
+  }, []);
 
   // Load Data
   useEffect(() => {
@@ -67,7 +85,10 @@ const App: React.FC = () => {
         console.error("Failed to parse elimination wins", e);
       }
     }
-  }, []);
+
+    // Load community avatars
+    loadCommunityAvatars();
+  }, [loadCommunityAvatars]);
 
   const startGame = () => {
     setScore(0);
@@ -116,7 +137,7 @@ const App: React.FC = () => {
   };
 
   const currentTheme = THEMES[currentThemeId];
-  const selectedCharacter = CHARACTERS.find(c => c.id === selectedCharacterId) || CHARACTERS[0];
+  const selectedCharacter = allCharacters.find(c => c.id === selectedCharacterId) || allCharacters[0];
 
   // Calculate progress to next level
   const scoreInCurrentLevel = score - ((level - 1) * LEVEL_SCORE_THRESHOLD);
@@ -181,6 +202,8 @@ const App: React.FC = () => {
           lifetimePoints={lifetimePoints}
           selectedCharacterId={selectedCharacterId}
           onSelectCharacter={setSelectedCharacterId}
+          allCharacters={allCharacters}
+          onRefreshAvatars={loadCommunityAvatars}
         />
       )}
 
@@ -207,6 +230,8 @@ const App: React.FC = () => {
           onWin={handleEliminationWin}
           selectedCharacterId={selectedCharacterId}
           eliminationWins={eliminationWins}
+          allCharacters={allCharacters}
+          onRefreshAvatars={loadCommunityAvatars}
         />
       )}
     </div>

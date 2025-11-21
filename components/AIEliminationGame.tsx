@@ -1,15 +1,17 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Character } from '../types';
-import { CHARACTERS } from '../constants';
 import { saveEliminationScore } from '../lib/supabase';
 import { getRankLevel } from '../utils/rankingSystem';
+import AvatarUpload from './AvatarUpload';
 
 interface AIEliminationGameProps {
   onBack: () => void;
   onWin: () => void;
   selectedCharacterId: string;
   eliminationWins: number;
+  allCharacters: Character[]; // All available characters (default + community)
+  onRefreshAvatars: () => void; // Refresh community avatars after upload
 }
 
 interface Combatant {
@@ -94,7 +96,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   onBack,
   onWin,
   selectedCharacterId: initialSelectedCharacterId,
-  eliminationWins
+  eliminationWins,
+  allCharacters,
+  onRefreshAvatars
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
@@ -113,6 +117,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const [showDifficultySelect, setShowDifficultySelect] = useState(false);
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
   const [showNameEntry, setShowNameEntry] = useState(false);
+  const [showAvatarUpload, setShowAvatarUpload] = useState(false);
   const [showPostGameLeaderboard, setShowPostGameLeaderboard] = useState(false);
   const [showInGameLeaderboard, setShowInGameLeaderboard] = useState(false);
   const [playerName, setPlayerName] = useState('');
@@ -131,12 +136,12 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
   // Preload avatar images
   useEffect(() => {
-    CHARACTERS.forEach(char => {
+    allCharacters.forEach(char => {
       const img = new Image();
       img.src = char.avatarUrl;
       avatarImagesRef.current.set(char.id, img);
     });
-  }, []);
+  }, [allCharacters]);
 
   // Calculate score based on placement, eliminations, and survival time
   const calculateScore = (finalPlacement: number, totalFighters: number, survivedSeconds: number): number => {
@@ -175,7 +180,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     setPlacement(0);
 
     // Use ALL characters for the battle
-    const selectedFighters = CHARACTERS.slice(0, fighterCount);
+    const selectedFighters = allCharacters.slice(0, fighterCount);
 
     selectedFighters.forEach((char) => {
       // Randomize starting positions (avoiding edges)
@@ -604,7 +609,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     }
   }, [winner, placement, onWin]);
 
-  const unlockedCount = CHARACTERS.length; // All characters unlocked from the start
+  const unlockedCount = allCharacters.length; // All characters unlocked from the start
 
   // Save score to Supabase
   const handleSaveScore = async () => {
@@ -616,7 +621,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
         score,
         placement,
         total_fighters: fighterCount,
-        fighter_used: CHARACTERS.find(c => c.id === selectedCharacterId)?.name || 'Unknown'
+        fighter_used: allCharacters.find(c => c.id === selectedCharacterId)?.name || 'Unknown'
       });
       console.log('Elimination score saved to Supabase!');
     } catch (error) {
@@ -985,12 +990,12 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               SELECT YOUR FIGHTER
             </h1>
             <p className="text-cyan-400 text-sm mt-2">
-              {selectedGameMode.name} • {selectedDifficulty.name} • {unlockedCount} / {CHARACTERS.length} FIGHTERS UNLOCKED
+              {selectedGameMode.name} • {selectedDifficulty.name} • {unlockedCount} / {allCharacters.length} FIGHTERS UNLOCKED
             </p>
           </div>
 
           <div className="grid grid-cols-6 lg:grid-cols-8 gap-3 mb-6 max-h-96 overflow-y-auto p-2">
-            {CHARACTERS.map((char, index) => {
+            {allCharacters.map((char, index) => {
               const isLocked = index >= unlockedCount;
               const isSelected = selectedCharacterId === char.id;
               return (
@@ -1039,6 +1044,15 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               ← DIFFICULTY
             </button>
             <button
+              onClick={() => {
+                setShowCharacterSelect(false);
+                setShowAvatarUpload(true);
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold text-sm rounded-lg shadow-lg transition-all"
+            >
+              📤 UPLOAD
+            </button>
+            <button
               onClick={() => setShowCharacterSelect(false)}
               className="px-8 py-4 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold text-xl rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
@@ -1074,7 +1088,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
           </h1>
           <p className="text-white/70 text-sm">{selectedGameMode.name} • Last one standing wins</p>
           <p className="text-cyan-400 text-xs mt-2">
-            Playing as: {CHARACTERS.find(c => c.id === selectedCharacterId)?.name} • {selectedDifficulty.name} • {fighterCount} Fighters
+            Playing as: {allCharacters.find(c => c.id === selectedCharacterId)?.name} • {selectedDifficulty.name} • {fighterCount} Fighters
           </p>
 
           {/* STANDINGS button moved here */}
@@ -1268,6 +1282,17 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
           ← CHANGE FIGHTER
         </button>
       </div>
+
+      {/* Avatar Upload Modal */}
+      {showAvatarUpload && (
+        <AvatarUpload
+          onClose={() => setShowAvatarUpload(false)}
+          onSuccess={() => {
+            onRefreshAvatars();
+            setShowAvatarUpload(false);
+          }}
+        />
+      )}
     </div>
   );
 };

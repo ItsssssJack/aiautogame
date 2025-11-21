@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { THEMES, CHARACTERS } from '../constants';
+import { THEMES } from '../constants';
 import { ThemeConfig, ThemeId, Character } from '../types';
 import packageJson from '../package.json';
+import AvatarUpload from './AvatarUpload';
 
 interface MainMenuProps {
   onStart: () => void;
@@ -14,6 +15,8 @@ interface MainMenuProps {
   lifetimePoints: number; // Total cumulative points across all games
   selectedCharacterId: string;
   onSelectCharacter: (charId: string) => void;
+  allCharacters: Character[]; // All available characters (default + community)
+  onRefreshAvatars: () => void; // Refresh community avatars after upload
 }
 
 // Helper component to handle image loading errors gracefully
@@ -54,11 +57,14 @@ const MainMenu: React.FC<MainMenuProps> = ({
   highScore,
   lifetimePoints,
   selectedCharacterId,
-  onSelectCharacter
+  onSelectCharacter,
+  allCharacters,
+  onRefreshAvatars
 }) => {
   const themesList = Object.values(THEMES);
   const [activeIndex, setActiveIndex] = useState(themesList.findIndex(t => t.id === currentTheme.id));
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
+  const [showAvatarUpload, setShowAvatarUpload] = useState(false);
 
   const handlePrev = () => {
     const next = activeIndex === 0 ? themesList.length - 1 : activeIndex - 1;
@@ -75,7 +81,9 @@ const MainMenu: React.FC<MainMenuProps> = ({
   const activeTheme = themesList[activeIndex];
   const isLocked = highScore < activeTheme.unlockScore;
 
-  const allUnlocked = CHARACTERS.every(char => lifetimePoints >= char.unlockPoints);
+  // Check if all default characters are unlocked (community avatars are always unlocked)
+  const defaultCharacters = allCharacters.filter(c => !c.id.startsWith('community-'));
+  const allUnlocked = defaultCharacters.every(char => lifetimePoints >= char.unlockPoints);
 
   const renderCharacterSelect = () => (
     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-3 animate-fade-in overflow-hidden">
@@ -116,9 +124,10 @@ const MainMenu: React.FC<MainMenuProps> = ({
 
          <div className="flex-1 min-h-0 mb-3">
            <div className="grid grid-cols-5 lg:grid-cols-6 gap-3 h-full content-start">
-              {CHARACTERS.map((char) => {
+              {allCharacters.map((char) => {
                 const charLocked = lifetimePoints < char.unlockPoints;
                 const isSelected = selectedCharacterId === char.id;
+                const isCommunity = char.id.startsWith('community-');
                 return (
                   <button
                     key={char.id}
@@ -135,9 +144,9 @@ const MainMenu: React.FC<MainMenuProps> = ({
                     <CharacterAvatar char={char} size="w-16 h-16" className="mb-2 transition-transform group-hover:scale-105" />
 
                     <span className={`text-[9px] font-bold font-mono truncate w-full text-center transition-colors ${isSelected ? 'text-cyan-300' : 'text-slate-400'}`}>
-                      {char.name}
+                      {isCommunity && '🌐 '}{char.name}
                     </span>
-                    
+
                     {charLocked && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-xl backdrop-blur-[2px]">
                         <span className="text-lg mb-1 drop-shadow-md">🔒</span>
@@ -146,7 +155,7 @@ const MainMenu: React.FC<MainMenuProps> = ({
                         </span>
                       </div>
                     )}
-                    
+
                     {/* Selection Ring Animation */}
                     {isSelected && (
                       <div className="absolute inset-0 border-2 border-cyan-400 rounded-xl animate-pulse opacity-50" />
@@ -157,12 +166,23 @@ const MainMenu: React.FC<MainMenuProps> = ({
            </div>
          </div>
 
-         <button
-           onClick={() => setShowCharacterSelect(false)}
-           className="w-full py-3 bg-white text-slate-900 font-bold font-display rounded-lg hover:bg-cyan-50 transition-colors shadow-lg shrink-0 tracking-widest text-sm"
-         >
-           CONFIRM SELECTION
-         </button>
+         <div className="flex gap-3 shrink-0">
+           <button
+             onClick={() => {
+               setShowCharacterSelect(false);
+               setShowAvatarUpload(true);
+             }}
+             className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold font-display rounded-lg transition-all shadow-lg tracking-widest text-sm"
+           >
+             📤 UPLOAD AVATAR
+           </button>
+           <button
+             onClick={() => setShowCharacterSelect(false)}
+             className="flex-1 py-3 bg-white text-slate-900 font-bold font-display rounded-lg hover:bg-cyan-50 transition-colors shadow-lg tracking-widest text-sm"
+           >
+             CONFIRM
+           </button>
+         </div>
        </div>
     </div>
   );
@@ -170,6 +190,17 @@ const MainMenu: React.FC<MainMenuProps> = ({
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6 overflow-y-auto custom-scrollbar">
       {showCharacterSelect && renderCharacterSelect()}
+
+      {/* Avatar Upload Modal */}
+      {showAvatarUpload && (
+        <AvatarUpload
+          onClose={() => setShowAvatarUpload(false)}
+          onSuccess={() => {
+            onRefreshAvatars();
+            setShowAvatarUpload(false);
+          }}
+        />
+      )}
 
       {/* Glass Background */}
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-[-1]" />
@@ -228,13 +259,13 @@ const MainMenu: React.FC<MainMenuProps> = ({
             className="flex items-center gap-3 px-4 py-3 rounded-xl bg-black/30 hover:bg-black/50 border border-white/10 hover:border-cyan-500/50 transition-all w-full justify-between group"
            >
              <div className="flex items-center gap-4">
-                <CharacterAvatar 
-                  char={CHARACTERS.find(c => c.id === selectedCharacterId) || CHARACTERS[0]} 
+                <CharacterAvatar
+                  char={allCharacters.find(c => c.id === selectedCharacterId) || allCharacters[0]}
                   size="w-12 h-12"
                 />
                 <div className="text-left">
                   <div className="text-[10px] text-white/50 uppercase tracking-wider font-bold">Current Driver</div>
-                  <div className={`text-base font-bold ${activeTheme.colors.text}`}>{CHARACTERS.find(c => c.id === selectedCharacterId)?.name}</div>
+                  <div className={`text-base font-bold ${activeTheme.colors.text}`}>{allCharacters.find(c => c.id === selectedCharacterId)?.name}</div>
                 </div>
              </div>
              <div className="text-white/50 text-xs group-hover:text-white transition-colors font-bold">CHANGE &gt;</div>

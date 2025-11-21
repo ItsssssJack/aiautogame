@@ -258,17 +258,29 @@ export const THEMES: Record<string, ThemeConfig> = {
     roadType: 'dirt',
     dayNightEnabled: true,
     colors: {
-      backgroundTop: '#87CEEB', 
-      backgroundBottom: '#fde68a', 
-      road: '#d4a373', 
+      backgroundTop: '#87CEEB',
+      backgroundBottom: '#fde68a',
+      road: '#d4a373',
       roadMarking: 'rgba(255, 255, 255, 0.3)',
       laneBorder: 'rgba(0,0,0,0.1)',
-      obstacle: '#57534e', 
+      obstacle: '#57534e',
       obstacleAccent: '#292524',
-      coin: '#3b82f6', 
+      coin: '#3b82f6',
       text: 'text-slate-800',
       uiBorder: 'border-amber-800/30',
       uiBackground: 'bg-amber-50/90'
     }
   }
 };
+
+// Helper function to convert community avatar database records to Character objects
+export function convertCommunityAvatarToCharacter(dbRecord: any): Character {
+  return {
+    id: `community-${dbRecord.id}`,
+    name: dbRecord.name,
+    unlockPoints: 0, // Community avatars are always unlocked
+    color: dbRecord.color,
+    accentColor: dbRecord.accent_color,
+    avatarUrl: dbRecord.avatar_url
+  };
+}

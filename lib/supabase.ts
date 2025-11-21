@@ -63,7 +63,7 @@ export async function saveEliminationScore(entry: {
   total_fighters: number;
   fighter_used: string;
 }) {
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from('elimination_leaderboard')
     .insert([entry])
     .select();
@@ -74,4 +74,83 @@ export async function saveEliminationScore(entry: {
   }
 
   return data;
+}
+
+// Community avatar functions
+export async function fetchCommunityAvatars() {
+  const { data, error } = await supabase
+    .from('community_avatars')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching community avatars:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function uploadCommunityAvatar(file: File, name: string, color: string, accentColor: string) {
+  try {
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error('File size must be less than 5MB');
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      throw new Error('File must be JPG, PNG, or WebP');
+    }
+
+    // Generate unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const storagePath = `avatars/${fileName}`;
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      throw uploadError;
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(storagePath);
+
+    // Save record to database
+    const { data: avatarData, error: dbError } = await supabase
+      .from('community_avatars')
+      .insert([{
+        name,
+        avatar_url: publicUrl,
+        storage_path: storagePath,
+        color,
+        accent_color: accentColor
+      }])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Error saving avatar record:', dbError);
+      // Try to clean up uploaded file
+      await supabase.storage.from('avatars').remove([storagePath]);
+      throw dbError;
+    }
+
+    return avatarData;
+  } catch (error) {
+    console.error('Upload failed:', error);
+    throw error;
+  }
 }
