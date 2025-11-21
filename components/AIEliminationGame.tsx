@@ -113,6 +113,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
   const [winner, setWinner] = useState<Character | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [showGameModeSelect, setShowGameModeSelect] = useState(true);
   const [showDifficultySelect, setShowDifficultySelect] = useState(false);
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
@@ -587,14 +588,30 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     animationFrameRef.current = requestAnimationFrame(gameLoop);
   };
 
-  // Start game
+  // Start game with countdown
   const handleStart = () => {
-    setGameStarted(true);
     setWinner(null);
     setShowNameEntry(false);
     setUnlockedTop5(false);
+    setCountdown(3); // Start countdown from 3
     initializeCombatants();
-    gameLoop();
+
+    // Countdown timer
+    let count = 3;
+    const countdownInterval = setInterval(() => {
+      count--;
+      if (count > 0) {
+        setCountdown(count);
+      } else {
+        setCountdown(0); // Show "GO!"
+        clearInterval(countdownInterval);
+        setTimeout(() => {
+          setCountdown(null);
+          setGameStarted(true);
+          gameLoop();
+        }, 500); // Show "GO!" for 500ms before starting
+      }
+    }, 1000);
   };
 
   // Cleanup
@@ -1261,7 +1278,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
           )}
 
           {/* Start overlay */}
-          {!gameStarted && !winner && (
+          {!gameStarted && !winner && countdown === null && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 rounded-lg">
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-white mb-4">HOW TO PLAY</h2>
@@ -1282,6 +1299,23 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               >
                 BEGIN ELIMINATION
               </button>
+            </div>
+          )}
+
+          {/* Countdown overlay */}
+          {countdown !== null && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
+              <div className="text-center">
+                {countdown > 0 ? (
+                  <div className="text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 animate-pulse">
+                    {countdown}
+                  </div>
+                ) : (
+                  <div className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 animate-bounce">
+                    GO!
+                  </div>
+                )}
+              </div>
             </div>
           )}
           </div>
