@@ -47,10 +47,10 @@ const WINNER_CELEBRATION_FRAMES = 180; // 3 seconds at 60fps to show winner befo
 
 // AI difficulty levels
 const DIFFICULTY_LEVELS = [
-  { id: 'easy', name: 'Neural Novice', description: '8 AI fighters', fighterCount: 8, color: 'from-green-400 to-green-600' },
-  { id: 'medium', name: 'Algorithm Ace', description: '12 AI fighters', fighterCount: 12, color: 'from-blue-400 to-blue-600' },
-  { id: 'hard', name: 'Deep Learning Master', description: '16 AI fighters', fighterCount: 16, color: 'from-orange-400 to-orange-600' },
-  { id: 'nightmare', name: 'Singularity Mode', description: '22 AI fighters', fighterCount: 22, color: 'from-red-500 to-purple-600' }
+  { id: 'easy', name: 'Easy mode', description: '8 AI fighters', fighterCount: 8, color: 'from-green-400 to-green-600' },
+  { id: 'medium', name: 'Medium', description: '12 AI fighters', fighterCount: 12, color: 'from-blue-400 to-blue-600' },
+  { id: 'hard', name: 'Difficult', description: '16 AI fighters', fighterCount: 16, color: 'from-orange-400 to-orange-600' },
+  { id: 'nightmare', name: 'Nightmare mode', description: '22 AI fighters', fighterCount: 22, color: 'from-red-500 to-purple-600' }
 ];
 
 // Game modes
