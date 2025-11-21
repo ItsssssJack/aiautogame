@@ -279,6 +279,10 @@ const MainMenu: React.FC<MainMenuProps> = ({
       <div className="mt-8 text-white/30 text-xs font-mono text-center space-y-1">
         <div>↑↓ SWITCH LANES  •  ←→ DODGE  •  SPACE JUMP</div>
       </div>
+
+      <div className="mt-4 text-white/20 text-xs font-mono text-center">
+        <div>AI Automations by <span className="text-cyan-400/60 font-bold">jack</span></div>
+      </div>
     </div>
   );
 };

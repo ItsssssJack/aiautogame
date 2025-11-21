@@ -26,8 +26,17 @@ interface Combatant {
   eliminationOrder?: number;
 }
 
-const BASE_ARENA_WIDTH = 900;
-const BASE_ARENA_HEIGHT = 500;
+interface EliminationParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  color: string;
+}
+
+const BASE_ARENA_WIDTH = 750;
+const BASE_ARENA_HEIGHT = 450;
 const AVATAR_RADIUS = 30;
 const INITIAL_SPEED = 0.5; // Start even slower
 const LIVES = 10; // Increased from 3 to 10
@@ -52,6 +61,7 @@ const GAME_MODES = [
     description: 'Standard elimination rules',
     icon: '⚔️',
     lives: 10,
+    baseSpeed: 0.5,
     speedInterval: 8 * 60,
     speedIncrement: 0.4,
     color: 'from-blue-400 to-blue-600'
@@ -62,6 +72,7 @@ const GAME_MODES = [
     description: 'Fast-paced chaos',
     icon: '⚡',
     lives: 5,
+    baseSpeed: 0.8,
     speedInterval: 4 * 60,
     speedIncrement: 0.8,
     color: 'from-yellow-400 to-orange-600'
@@ -72,6 +83,7 @@ const GAME_MODES = [
     description: 'Endurance challenge',
     icon: '🏃',
     lives: 20,
+    baseSpeed: 0.3,
     speedInterval: 12 * 60,
     speedIncrement: 0.2,
     color: 'from-green-400 to-teal-600'
@@ -93,6 +105,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const eliminationOrderRef = useRef(0);
   const playerEliminatedRef = useRef(false);
   const winnerCelebrationFramesRef = useRef(0);
+  const eliminationParticlesRef = useRef<EliminationParticle[]>([]);
 
   const [winner, setWinner] = useState<Character | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
@@ -113,8 +126,8 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const [finalLeaderboard, setFinalLeaderboard] = useState<Array<{character: Character, placement: number}>>([]);
 
   // Calculate arena dimensions based on fighter count (horizontal layout)
-  const arenaWidth = Math.min(BASE_ARENA_WIDTH + (fighterCount - 8) * 20, 1100); // Max 1100px width
-  const arenaHeight = Math.min(BASE_ARENA_HEIGHT + (fighterCount - 8) * 10, 650); // Max 650px height
+  const arenaWidth = Math.min(BASE_ARENA_WIDTH + (fighterCount - 8) * 15, 900); // Max 900px width
+  const arenaHeight = Math.min(BASE_ARENA_HEIGHT + (fighterCount - 8) * 8, 550); // Max 550px height
 
   // Preload avatar images
   useEffect(() => {
@@ -133,6 +146,23 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     return placementPoints + survivalPoints + winBonus;
   };
 
+  // Create elimination particle effect
+  const createEliminationParticles = (x: number, y: number, color: string) => {
+    const particleCount = 20;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2;
+      const speed = 2 + Math.random() * 3;
+      eliminationParticlesRef.current.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 30, // frames
+        color
+      });
+    }
+  };
+
   // Initialize combatants
   const initializeCombatants = () => {
     const activeCombatants: Combatant[] = [];
@@ -147,18 +177,19 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     // Use ALL characters for the battle
     const selectedFighters = CHARACTERS.slice(0, fighterCount);
 
-    selectedFighters.forEach((char, index) => {
-      const angle = (index / selectedFighters.length) * Math.PI * 2;
-      const startRadiusX = arenaWidth * 0.3;
-      const startRadiusY = arenaHeight * 0.3;
+    selectedFighters.forEach((char) => {
+      // Randomize starting positions (avoiding edges)
+      const padding = AVATAR_RADIUS * 2;
+      const x = padding + Math.random() * (arenaWidth - padding * 2);
+      const y = padding + Math.random() * (arenaHeight - padding * 2);
 
       activeCombatants.push({
         id: char.id,
         character: char,
-        x: arenaWidth / 2 + Math.cos(angle) * startRadiusX,
-        y: arenaHeight / 2 + Math.sin(angle) * startRadiusY,
-        vx: (Math.random() - 0.5) * INITIAL_SPEED * 2,
-        vy: (Math.random() - 0.5) * INITIAL_SPEED * 2,
+        x,
+        y,
+        vx: (Math.random() - 0.5) * selectedGameMode.baseSpeed * 2,
+        vy: (Math.random() - 0.5) * selectedGameMode.baseSpeed * 2,
         lives: selectedGameMode.lives,
         eliminated: false,
         flashTime: 0,
@@ -321,17 +352,30 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
             c2.eliminated = true;
             c1.eliminationOrder = eliminationOrderRef.current;
             c2.eliminationOrder = eliminationOrderRef.current;
+            // Speed boost on elimination
+            speedMultiplierRef.current += 0.15;
+            // Create elimination particles
+            createEliminationParticles(c1.x, c1.y, c1.character.color);
+            createEliminationParticles(c2.x, c2.y, c2.character.color);
           } else {
             // Separate eliminations
             if (c1JustEliminated) {
               c1.eliminated = true;
               eliminationOrderRef.current++;
               c1.eliminationOrder = eliminationOrderRef.current;
+              // Speed boost on elimination
+              speedMultiplierRef.current += 0.15;
+              // Create elimination particles
+              createEliminationParticles(c1.x, c1.y, c1.character.color);
             }
             if (c2JustEliminated) {
               c2.eliminated = true;
               eliminationOrderRef.current++;
               c2.eliminationOrder = eliminationOrderRef.current;
+              // Speed boost on elimination
+              speedMultiplierRef.current += 0.15;
+              // Create elimination particles
+              createEliminationParticles(c2.x, c2.y, c2.character.color);
             }
           }
 
@@ -366,6 +410,26 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
         }
       }
     }
+
+    // Update and draw elimination particles
+    eliminationParticlesRef.current = eliminationParticlesRef.current.filter(particle => {
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+      particle.life--;
+      return particle.life > 0;
+    });
+
+    // Draw particles
+    eliminationParticlesRef.current.forEach(particle => {
+      const alpha = particle.life / 30;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = particle.color;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
 
     // Draw all combatants
     activeCombatants.forEach(combatant => {
@@ -514,7 +578,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     }
   }, [winner, placement, onWin]);
 
-  const unlockedCount = CHARACTERS.length; // All characters unlocked
+  const unlockedCount = Math.min(10 + eliminationWins, CHARACTERS.length); // Start with 10, unlock more through wins
 
   // Save score to Supabase
   const handleSaveScore = async () => {
@@ -747,7 +811,8 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
                   <p className="text-slate-300 text-sm mb-3">{mode.description}</p>
                   <div className="space-y-1 text-xs text-slate-400">
                     <p>♥ Lives: {mode.lives}</p>
-                    <p>⚡ Speed: {mode.speedIncrement}x per {mode.speedInterval / 60}s</p>
+                    <p>🏃 Base Speed: {mode.baseSpeed}x</p>
+                    <p>⚡ Acceleration: {mode.speedIncrement}x per {mode.speedInterval / 60}s</p>
                   </div>
                   {isSelected && (
                     <div className="mt-3 text-cyan-400 font-bold flex items-center justify-center gap-2">
@@ -968,9 +1033,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
         </div>
 
         {/* Main game area - horizontal layout with eliminated panel on left */}
-        <div className="flex gap-4 items-start mb-4">
+        <div className="flex gap-3 items-start mb-4">
           {/* Eliminated Players Panel (Left Side) */}
-          <div className="w-64 bg-slate-800/80 border-2 border-red-500/30 rounded-lg p-4 shadow-2xl" style={{ height: `${arenaHeight}px` }}>
+          <div className="w-56 bg-slate-800/80 border-2 border-red-500/30 rounded-lg p-3 shadow-2xl" style={{ height: `${arenaHeight}px` }}>
             <h3 className="text-lg font-bold text-red-400 mb-3 flex items-center gap-2">
               <span>💀</span> ELIMINATED
             </h3>
