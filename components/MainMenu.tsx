@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { THEMES, CHARACTERS } from '../constants';
 import { ThemeConfig, ThemeId, Character } from '../types';
-import packageJson from '../../package.json';
+import packageJson from '../package.json';
 
 interface MainMenuProps {
   onStart: () => void;
