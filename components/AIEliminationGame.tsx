@@ -43,6 +43,40 @@ const DIFFICULTY_LEVELS = [
   { id: 'nightmare', name: 'Singularity Mode', description: '22 AI fighters', fighterCount: 22, color: 'from-red-500 to-purple-600' }
 ];
 
+// Game modes
+const GAME_MODES = [
+  {
+    id: 'classic',
+    name: 'Classic Battle',
+    description: 'Standard elimination rules',
+    icon: '⚔️',
+    lives: 10,
+    speedInterval: 8 * 60,
+    speedIncrement: 0.4,
+    color: 'from-blue-400 to-blue-600'
+  },
+  {
+    id: 'blitz',
+    name: 'Blitz Mode',
+    description: 'Fast-paced chaos',
+    icon: '⚡',
+    lives: 5,
+    speedInterval: 4 * 60,
+    speedIncrement: 0.8,
+    color: 'from-yellow-400 to-orange-600'
+  },
+  {
+    id: 'marathon',
+    name: 'Marathon Mode',
+    description: 'Endurance challenge',
+    icon: '🏃',
+    lives: 20,
+    speedInterval: 12 * 60,
+    speedIncrement: 0.2,
+    color: 'from-green-400 to-teal-600'
+  }
+];
+
 const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   onBack,
   onWin,
@@ -61,13 +95,15 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
   const [winner, setWinner] = useState<Character | null>(null);
   const [gameStarted, setGameStarted] = useState(false);
-  const [showDifficultySelect, setShowDifficultySelect] = useState(true);
+  const [showGameModeSelect, setShowGameModeSelect] = useState(true);
+  const [showDifficultySelect, setShowDifficultySelect] = useState(false);
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
   const [showNameEntry, setShowNameEntry] = useState(false);
   const [showPostGameLeaderboard, setShowPostGameLeaderboard] = useState(false);
   const [showInGameLeaderboard, setShowInGameLeaderboard] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [selectedCharacterId, setSelectedCharacterId] = useState(initialSelectedCharacterId);
+  const [selectedGameMode, setSelectedGameMode] = useState(GAME_MODES[0]);
   const [selectedDifficulty, setSelectedDifficulty] = useState(DIFFICULTY_LEVELS[0]);
   const [fighterCount, setFighterCount] = useState(8);
   const [score, setScore] = useState(0);
@@ -120,7 +156,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
         y: arenaSize / 2 + Math.sin(angle) * startRadius,
         vx: (Math.random() - 0.5) * INITIAL_SPEED * 2,
         vy: (Math.random() - 0.5) * INITIAL_SPEED * 2,
-        lives: LIVES,
+        lives: selectedGameMode.lives,
         eliminated: false,
         flashTime: 0,
         radius: AVATAR_RADIUS
@@ -183,9 +219,11 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
     ctx.restore();
 
-    // Draw lives below avatar (10 lives total)
+    // Draw lives below avatar (color based on percentage)
     ctx.font = 'bold 12px monospace';
-    ctx.fillStyle = lives >= 7 ? '#22c55e' : lives >= 4 ? '#f59e0b' : '#ef4444';
+    const maxLives = selectedGameMode.lives;
+    const lifePercentage = lives / maxLives;
+    ctx.fillStyle = lifePercentage >= 0.6 ? '#22c55e' : lifePercentage >= 0.3 ? '#f59e0b' : '#ef4444';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.fillText(`♥ ${lives}`, x, y + radius + 5);
@@ -202,9 +240,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     // Increment frame counter
     frameCountRef.current++;
 
-    // Increase speed every 8 seconds - gradual ramp up to finish in ~1 minute
-    if (frameCountRef.current % SPEED_INCREASE_INTERVAL === 0) {
-      speedMultiplierRef.current += 0.4; // Gradual speed increase
+    // Increase speed based on game mode
+    if (frameCountRef.current % selectedGameMode.speedInterval === 0) {
+      speedMultiplierRef.current += selectedGameMode.speedIncrement;
     }
 
     // Clear canvas
@@ -496,12 +534,20 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   // Post-game leaderboard screen
   if (showPostGameLeaderboard) {
     return (
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6 overflow-y-auto">
-        <div className="max-w-3xl w-full bg-slate-800/80 backdrop-blur-md rounded-2xl p-8 border-2 border-cyan-500/30 my-8">
+      <div className="absolute inset-0 z-20 flex flex-col bg-slate-900/95 p-6 overflow-y-auto">
+        {/* HOME BUTTON */}
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 px-4 py-2 bg-slate-800/90 border-2 border-white/20 rounded-lg text-white font-bold hover:bg-slate-700 transition-all flex items-center gap-2 z-50"
+        >
+          <span>🏠</span> HOME
+        </button>
+
+        <div className="max-w-3xl w-full mx-auto bg-slate-800/80 backdrop-blur-md rounded-2xl p-8 border-2 border-cyan-500/30 my-auto">
           <h2 className="text-4xl font-black text-white mb-2 text-center">
             FINAL STANDINGS
           </h2>
-          <p className="text-cyan-400 text-center mb-6">{selectedDifficulty.name} • {fighterCount} Fighters</p>
+          <p className="text-cyan-400 text-center mb-6">{selectedGameMode.name} • {selectedDifficulty.name} • {fighterCount} Fighters</p>
 
           <div className="space-y-2 mb-6 max-h-96 overflow-y-auto">
             {finalLeaderboard.map((entry, index) => {
@@ -554,7 +600,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
             <button
               onClick={() => {
                 setShowPostGameLeaderboard(false);
-                setShowDifficultySelect(true);
+                setShowCharacterSelect(true);
                 setGameStarted(false);
                 setWinner(null);
                 setShowNameEntry(false);
@@ -562,15 +608,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
                 setUnlockedTop5(false);
                 setFinalLeaderboard([]);
               }}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-lg"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-lg flex items-center justify-center gap-2"
             >
-              PLAY AGAIN
-            </button>
-            <button
-              onClick={onBack}
-              className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg"
-            >
-              MAIN MENU
+              <span>🔄</span> FIGHT AGAIN
             </button>
           </div>
         </div>
@@ -583,8 +623,16 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     const rank = getRankLevel(score);
 
     return (
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6">
-        <div className="max-w-md w-full bg-slate-800/80 backdrop-blur-md rounded-2xl p-8 border-2 border-cyan-500/30">
+      <div className="absolute inset-0 z-20 flex flex-col bg-slate-900/95 p-6">
+        {/* HOME BUTTON */}
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 px-4 py-2 bg-slate-800/90 border-2 border-white/20 rounded-lg text-white font-bold hover:bg-slate-700 transition-all flex items-center gap-2 z-50"
+        >
+          <span>🏠</span> HOME
+        </button>
+
+        <div className="max-w-md w-full mx-auto my-auto bg-slate-800/80 backdrop-blur-md rounded-2xl p-8 border-2 border-cyan-500/30">
           <h2 className="text-3xl font-black text-white mb-2 text-center">
             {placement === 1 ? '🏆 VICTORY!' : placement <= 5 ? '✨ TOP 5!' : `ELIMINATED`}
           </h2>
@@ -656,11 +704,87 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     );
   }
 
+  // Game Mode selection screen
+  if (showGameModeSelect) {
+    return (
+      <div className="absolute inset-0 z-20 flex flex-col bg-slate-900/95 p-6">
+        {/* HOME BUTTON */}
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 px-4 py-2 bg-slate-800/90 border-2 border-white/20 rounded-lg text-white font-bold hover:bg-slate-700 transition-all flex items-center gap-2 z-50"
+        >
+          <span>🏠</span> HOME
+        </button>
+
+        <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center">
+          <div className="text-center mb-8">
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500 mb-2">
+              SELECT GAME MODE
+            </h1>
+            <p className="text-slate-400 text-sm">Choose your battle style</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {GAME_MODES.map((mode) => {
+              const isSelected = selectedGameMode.id === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  onClick={() => setSelectedGameMode(mode)}
+                  className={`p-6 rounded-2xl border-2 transition-all duration-300 ${
+                    isSelected
+                      ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_30px_rgba(34,211,238,0.4)] scale-105'
+                      : 'border-slate-700 bg-slate-800/50 hover:border-slate-500 hover:bg-slate-800 hover:scale-105'
+                  }`}
+                >
+                  <div className="text-6xl mb-3">{mode.icon}</div>
+                  <div className={`inline-block px-4 py-2 rounded-full font-bold text-base mb-3 bg-gradient-to-r ${mode.color} text-white shadow-lg`}>
+                    {mode.name}
+                  </div>
+                  <p className="text-slate-300 text-sm mb-3">{mode.description}</p>
+                  <div className="space-y-1 text-xs text-slate-400">
+                    <p>♥ Lives: {mode.lives}</p>
+                    <p>⚡ Speed: {mode.speedIncrement}x per {mode.speedInterval / 60}s</p>
+                  </div>
+                  {isSelected && (
+                    <div className="mt-3 text-cyan-400 font-bold flex items-center justify-center gap-2">
+                      <span className="text-xl">✓</span> SELECTED
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => {
+                setShowGameModeSelect(false);
+                setShowDifficultySelect(true);
+              }}
+              className="px-8 py-4 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold text-xl rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              SELECT DIFFICULTY →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Difficulty selection screen
   if (showDifficultySelect) {
     return (
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6">
-        <div className="w-full max-w-4xl">
+      <div className="absolute inset-0 z-20 flex flex-col bg-slate-900/95 p-6">
+        {/* HOME BUTTON */}
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 px-4 py-2 bg-slate-800/90 border-2 border-white/20 rounded-lg text-white font-bold hover:bg-slate-700 transition-all flex items-center gap-2 z-50"
+        >
+          <span>🏠</span> HOME
+        </button>
+
+        <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center">
           <div className="text-center mb-8">
             <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500 mb-2">
               SELECT DIFFICULTY
@@ -704,19 +828,22 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
             })}
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 justify-center">
             <button
-              onClick={onBack}
+              onClick={() => {
+                setShowDifficultySelect(false);
+                setShowGameModeSelect(true);
+              }}
               className="px-6 py-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white/40 text-white font-semibold text-sm transition-all backdrop-blur-md"
             >
-              ← BACK
+              ← GAME MODE
             </button>
             <button
               onClick={() => {
                 setShowDifficultySelect(false);
                 setShowCharacterSelect(true);
               }}
-              className="flex-1 py-4 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold text-xl rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="px-8 py-4 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold text-xl rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               SELECT YOUR FIGHTER →
             </button>
@@ -729,14 +856,22 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   // Character selection screen (simplified)
   if (showCharacterSelect) {
     return (
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6">
-        <div className="w-full max-w-4xl">
+      <div className="absolute inset-0 z-20 flex flex-col bg-slate-900/95 p-6">
+        {/* HOME BUTTON */}
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 px-4 py-2 bg-slate-800/90 border-2 border-white/20 rounded-lg text-white font-bold hover:bg-slate-700 transition-all flex items-center gap-2 z-50"
+        >
+          <span>🏠</span> HOME
+        </button>
+
+        <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center">
           <div className="text-center mb-6">
             <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500">
               SELECT YOUR FIGHTER
             </h1>
             <p className="text-cyan-400 text-sm mt-2">
-              {selectedDifficulty.name} • {unlockedCount} / {CHARACTERS.length} FIGHTERS UNLOCKED
+              {selectedGameMode.name} • {selectedDifficulty.name} • {unlockedCount} / {CHARACTERS.length} FIGHTERS UNLOCKED
             </p>
           </div>
 
@@ -779,13 +914,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
             })}
           </div>
 
-          <div className="flex gap-4">
-            <button
-              onClick={onBack}
-              className="px-6 py-3 rounded-full border border-white/20 hover:bg-white/10 hover:border-white/40 text-white font-semibold text-sm transition-all backdrop-blur-md"
-            >
-              ← BACK TO MENU
-            </button>
+          <div className="flex gap-4 justify-center">
             <button
               onClick={() => {
                 setShowCharacterSelect(false);
@@ -797,7 +926,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
             </button>
             <button
               onClick={() => setShowCharacterSelect(false)}
-              className="flex-1 py-4 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold text-xl rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="px-8 py-4 bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 text-white font-bold text-xl rounded-lg shadow-lg transform transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               ENTER ARENA →
             </button>
@@ -809,16 +938,29 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
   // Game screen
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-6">
-      <div className="flex flex-col items-center">
+    <div className="absolute inset-0 z-20 flex flex-col bg-slate-900/95 p-6">
+      {/* HOME BUTTON */}
+      <button
+        onClick={() => {
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+          onBack();
+        }}
+        className="absolute top-4 left-4 px-4 py-2 bg-slate-800/90 border-2 border-white/20 rounded-lg text-white font-bold hover:bg-slate-700 transition-all flex items-center gap-2 z-50"
+      >
+        <span>🏠</span> HOME
+      </button>
+
+      <div className="flex flex-col items-center justify-center flex-1">
         {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500 mb-2">
             AI ELIMINATION
           </h1>
-          <p className="text-white/70 text-sm">Last one standing wins</p>
+          <p className="text-white/70 text-sm">{selectedGameMode.name} • Last one standing wins</p>
           <p className="text-cyan-400 text-xs mt-2">
-            Playing as: {CHARACTERS.find(c => c.id === selectedCharacterId)?.name} • {fighterCount} Fighters
+            Playing as: {CHARACTERS.find(c => c.id === selectedCharacterId)?.name} • {selectedDifficulty.name} • {fighterCount} Fighters
           </p>
         </div>
 
@@ -927,10 +1069,10 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-white mb-4">HOW TO PLAY</h2>
                 <div className="text-white/80 text-sm space-y-2 mb-6">
-                  <p>• {fighterCount} fighters enter the arena</p>
-                  <p>• Each has 10 lives (♥)</p>
+                  <p>• {selectedGameMode.name} • {fighterCount} fighters</p>
+                  <p>• Each has {selectedGameMode.lives} lives (♥)</p>
                   <p>• Every collision = -1 life</p>
-                  <p>• Speed increases gradually over time</p>
+                  <p>• Speed: +{selectedGameMode.speedIncrement}x every {selectedGameMode.speedInterval / 60}s</p>
                   <p>• Watch the full match play out!</p>
                   <p>• Last one standing wins</p>
                   <p className="text-cyan-400 font-bold mt-4">Higher placement = more points!</p>
