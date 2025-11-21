@@ -90,6 +90,8 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({
       setLeaderboard(data);
     } catch (error) {
       console.error('Failed to load leaderboard:', error);
+      // Set empty leaderboard on error so game still works
+      setLeaderboard([]);
     }
   };
 
