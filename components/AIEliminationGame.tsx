@@ -134,13 +134,28 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const arenaWidth = Math.min(BASE_ARENA_WIDTH + (fighterCount - 8) * 15, 900); // Max 900px width
   const arenaHeight = Math.min(BASE_ARENA_HEIGHT + (fighterCount - 8) * 8, 550); // Max 550px height
 
-  // Preload avatar images
+  // Preload avatar images (lazy load to avoid performance issues with many avatars)
   useEffect(() => {
-    allCharacters.forEach(char => {
+    // Only preload images as needed, not all at once
+    // This prevents slowdowns with 100+ community avatars
+    const preloadBatch = allCharacters.slice(0, 50); // Preload first 50
+
+    preloadBatch.forEach(char => {
       const img = new Image();
       img.src = char.avatarUrl;
       avatarImagesRef.current.set(char.id, img);
     });
+
+    // Lazy load the rest in the background
+    if (allCharacters.length > 50) {
+      setTimeout(() => {
+        allCharacters.slice(50).forEach(char => {
+          const img = new Image();
+          img.src = char.avatarUrl;
+          avatarImagesRef.current.set(char.id, img);
+        });
+      }, 1000);
+    }
   }, [allCharacters]);
 
   // Calculate score based on placement, eliminations, and survival time
@@ -179,8 +194,10 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     setScore(0);
     setPlacement(0);
 
-    // Use ALL characters for the battle
-    const selectedFighters = allCharacters.slice(0, fighterCount);
+    // Randomly select fighters from ALL available characters (default + community)
+    // This ensures new uploads have a chance to appear in battles
+    const shuffled = [...allCharacters].sort(() => Math.random() - 0.5);
+    const selectedFighters = shuffled.slice(0, Math.min(fighterCount, allCharacters.length));
 
     selectedFighters.forEach((char) => {
       // Randomize starting positions (avoiding edges)

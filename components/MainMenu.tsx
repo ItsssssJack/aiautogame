@@ -83,13 +83,21 @@ const MainMenu: React.FC<MainMenuProps> = ({
 
   // Check if all default characters are unlocked (community avatars are always unlocked)
   const defaultCharacters = allCharacters.filter(c => !c.id.startsWith('community-'));
+  const communityCharacters = allCharacters.filter(c => c.id.startsWith('community-'));
   const allUnlocked = defaultCharacters.every(char => lifetimePoints >= char.unlockPoints);
 
   const renderCharacterSelect = () => (
     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/95 p-3 animate-fade-in overflow-hidden">
        <div className="w-full max-w-5xl flex flex-col" style={{maxHeight: 'calc(100vh - 2rem)'}}>
          <div className="flex justify-between items-center mb-3 shrink-0">
-            <h2 className="text-2xl font-bold text-white font-display tracking-wider">SELECT DRIVER</h2>
+            <div>
+              <h2 className="text-2xl font-bold text-white font-display tracking-wider">SELECT DRIVER</h2>
+              {communityCharacters.length > 0 && (
+                <p className="text-xs text-cyan-400 mt-1">
+                  🌐 {communityCharacters.length} community avatar{communityCharacters.length !== 1 ? 's' : ''} available
+                </p>
+              )}
+            </div>
             <div className="text-right flex gap-4">
               <div>
                 <p className="text-[10px] text-slate-400">HIGH SCORE</p>

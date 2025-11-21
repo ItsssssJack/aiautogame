@@ -78,10 +78,13 @@ export async function saveEliminationScore(entry: {
 
 // Community avatar functions
 export async function fetchCommunityAvatars() {
+  // Limit to most recent 100 community avatars to prevent performance issues
+  // with large numbers of uploads. Can adjust this limit as needed.
   const { data, error } = await supabase
     .from('community_avatars')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(100);
 
   if (error) {
     console.error('Error fetching community avatars:', error);
