@@ -26,7 +26,8 @@ interface Combatant {
   eliminationOrder?: number;
 }
 
-const BASE_ARENA_SIZE = 600;
+const BASE_ARENA_WIDTH = 900;
+const BASE_ARENA_HEIGHT = 500;
 const AVATAR_RADIUS = 30;
 const INITIAL_SPEED = 0.5; // Start even slower
 const LIVES = 10; // Increased from 3 to 10
@@ -111,8 +112,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
   const [unlockedTop5, setUnlockedTop5] = useState(false);
   const [finalLeaderboard, setFinalLeaderboard] = useState<Array<{character: Character, placement: number}>>([]);
 
-  // Calculate arena size based on fighter count
-  const arenaSize = Math.min(BASE_ARENA_SIZE + (fighterCount - 8) * 30, 900); // Max 900px
+  // Calculate arena dimensions based on fighter count (horizontal layout)
+  const arenaWidth = Math.min(BASE_ARENA_WIDTH + (fighterCount - 8) * 20, 1100); // Max 1100px width
+  const arenaHeight = Math.min(BASE_ARENA_HEIGHT + (fighterCount - 8) * 10, 650); // Max 650px height
 
   // Preload avatar images
   useEffect(() => {
@@ -147,13 +149,14 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
     selectedFighters.forEach((char, index) => {
       const angle = (index / selectedFighters.length) * Math.PI * 2;
-      const startRadius = arenaSize * 0.3;
+      const startRadiusX = arenaWidth * 0.3;
+      const startRadiusY = arenaHeight * 0.3;
 
       activeCombatants.push({
         id: char.id,
         character: char,
-        x: arenaSize / 2 + Math.cos(angle) * startRadius,
-        y: arenaSize / 2 + Math.sin(angle) * startRadius,
+        x: arenaWidth / 2 + Math.cos(angle) * startRadiusX,
+        y: arenaHeight / 2 + Math.sin(angle) * startRadiusY,
         vx: (Math.random() - 0.5) * INITIAL_SPEED * 2,
         vy: (Math.random() - 0.5) * INITIAL_SPEED * 2,
         lives: selectedGameMode.lives,
@@ -247,12 +250,12 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
     // Clear canvas
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, arenaSize, arenaSize);
+    ctx.fillRect(0, 0, arenaWidth, arenaHeight);
 
     // Draw arena border
     ctx.strokeStyle = '#22d3ee';
     ctx.lineWidth = 4;
-    ctx.strokeRect(2, 2, arenaSize - 4, arenaSize - 4);
+    ctx.strokeRect(2, 2, arenaWidth - 4, arenaHeight - 4);
 
     const combatants = combatantsRef.current;
     const activeCombatants = combatants.filter(c => !c.eliminated);
@@ -267,16 +270,16 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
       if (combatant.x - combatant.radius < 0) {
         combatant.x = combatant.radius;
         combatant.vx = Math.abs(combatant.vx);
-      } else if (combatant.x + combatant.radius > arenaSize) {
-        combatant.x = arenaSize - combatant.radius;
+      } else if (combatant.x + combatant.radius > arenaWidth) {
+        combatant.x = arenaWidth - combatant.radius;
         combatant.vx = -Math.abs(combatant.vx);
       }
 
       if (combatant.y - combatant.radius < 0) {
         combatant.y = combatant.radius;
         combatant.vy = Math.abs(combatant.vy);
-      } else if (combatant.y + combatant.radius > arenaSize) {
-        combatant.y = arenaSize - combatant.radius;
+      } else if (combatant.y + combatant.radius > arenaHeight) {
+        combatant.y = arenaHeight - combatant.radius;
         combatant.vy = -Math.abs(combatant.vy);
       }
 
@@ -375,7 +378,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
       ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
       ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'right';
-      ctx.fillText(`💀 ELIMINATED: ${eliminatedCount}`, arenaSize - 10, 30);
+      ctx.fillText(`💀 ELIMINATED: ${eliminatedCount}`, arenaWidth - 10, 30);
     }
 
     // Draw speed multiplier indicator
@@ -397,14 +400,14 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
     ctx.fillStyle = 'rgba(34, 211, 238, 0.9)';
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(`SCORE: ${currentScore}`, arenaSize / 2, 30);
+    ctx.fillText(`SCORE: ${currentScore}`, arenaWidth / 2, 30);
 
     // Show "SPECTATING" if player is eliminated
     if (playerEliminatedRef.current) {
       ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
       ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('👁️ SPECTATING', arenaSize / 2, 50);
+      ctx.fillText('👁️ SPECTATING', arenaWidth / 2, 50);
     }
 
     // Check if player just got eliminated (only set once)
@@ -438,9 +441,9 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
       ctx.fillStyle = 'rgba(34, 211, 238, 0.95)';
       ctx.font = 'bold 32px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('🏆 WINNER 🏆', arenaSize / 2, arenaSize / 2 - 20);
+      ctx.fillText('🏆 WINNER 🏆', arenaWidth / 2, arenaHeight / 2 - 20);
       ctx.font = 'bold 24px monospace';
-      ctx.fillText(finalWinner.character.name, arenaSize / 2, arenaSize / 2 + 20);
+      ctx.fillText(finalWinner.character.name, arenaWidth / 2, arenaHeight / 2 + 20);
       ctx.restore();
 
       // After celebration period, calculate final leaderboard and show winner overlay
@@ -954,7 +957,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
 
       <div className="flex flex-col items-center justify-center flex-1">
         {/* Header */}
-        <div className="mb-6 text-center">
+        <div className="mb-4 text-center">
           <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-purple-500 mb-2">
             AI ELIMINATION
           </h1>
@@ -964,14 +967,66 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
           </p>
         </div>
 
-        {/* Canvas */}
-        <div className="relative mb-6">
-          <canvas
-            ref={canvasRef}
-            width={arenaSize}
-            height={arenaSize}
-            className="border-4 border-cyan-500 rounded-lg shadow-2xl"
-          />
+        {/* Main game area - horizontal layout with eliminated panel on left */}
+        <div className="flex gap-4 items-start mb-4">
+          {/* Eliminated Players Panel (Left Side) */}
+          <div className="w-64 bg-slate-800/80 border-2 border-red-500/30 rounded-lg p-4 shadow-2xl" style={{ height: `${arenaHeight}px` }}>
+            <h3 className="text-lg font-bold text-red-400 mb-3 flex items-center gap-2">
+              <span>💀</span> ELIMINATED
+            </h3>
+            <div className="space-y-2 overflow-y-auto" style={{ maxHeight: `${arenaHeight - 60}px` }}>
+              {combatantsRef.current
+                .filter(c => c.eliminated)
+                .sort((a, b) => (b.eliminationOrder || 0) - (a.eliminationOrder || 0))
+                .map((c) => {
+                  const isPlayer = c.character.id === selectedCharacterId;
+                  const eliminationPlacement = combatantsRef.current.length - (c.eliminationOrder || 0) + 1;
+                  return (
+                    <div
+                      key={c.id}
+                      className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                        isPlayer
+                          ? 'bg-cyan-900/40 border border-cyan-500 shadow-[0_0_10px_rgba(34,211,238,0.3)]'
+                          : 'bg-slate-700/50'
+                      }`}
+                    >
+                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-900 border border-red-500 text-red-400 font-bold text-xs shrink-0">
+                        #{eliminationPlacement}
+                      </div>
+                      <img
+                        src={c.character.avatarUrl}
+                        alt={c.character.name}
+                        className="w-10 h-10 rounded-full object-cover grayscale border-2 border-white/10"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className={`font-mono text-sm font-bold block truncate ${
+                          isPlayer ? 'text-cyan-300' : 'text-white'
+                        }`}>
+                          {c.character.name}
+                        </span>
+                        {isPlayer && (
+                          <span className="text-cyan-400 text-xs">YOU</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              {combatantsRef.current.filter(c => c.eliminated).length === 0 && (
+                <div className="text-center text-slate-500 text-sm py-8">
+                  No eliminations yet...
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Canvas */}
+          <div className="relative">
+            <canvas
+              ref={canvasRef}
+              width={arenaWidth}
+              height={arenaHeight}
+              className="border-4 border-cyan-500 rounded-lg shadow-2xl"
+            />
 
           {/* Leaderboard button - always visible during game */}
           {gameStarted && (
@@ -1087,6 +1142,7 @@ const AIEliminationGame: React.FC<AIEliminationGameProps> = ({
               </button>
             </div>
           )}
+          </div>
         </div>
 
         {/* Back button */}
