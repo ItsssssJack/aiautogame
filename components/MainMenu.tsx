@@ -170,10 +170,27 @@ const MainMenu: React.FC<MainMenuProps> = ({
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-6 overflow-y-auto custom-scrollbar">
       {showCharacterSelect && renderCharacterSelect()}
-      
+
       {/* Glass Background */}
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-[-1]" />
-      
+
+      {/* Version Badge - Top Right */}
+      <div className="absolute top-6 right-6 flex flex-col items-end gap-2 z-20">
+        <div className="group relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-slate-800/80 to-slate-900/80 border border-cyan-500/30 backdrop-blur-md shadow-lg hover:border-cyan-400/50 transition-all duration-300">
+            <span className="text-[10px] text-cyan-400/60 font-mono tracking-wider uppercase">Version</span>
+            <span className="text-sm text-cyan-300 font-mono font-bold tracking-wide">{packageJson.version}</span>
+          </div>
+        </div>
+        <div className="group relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="relative px-4 py-2 rounded-full bg-gradient-to-r from-slate-800/80 to-slate-900/80 border border-purple-500/30 backdrop-blur-md shadow-lg hover:border-purple-400/50 transition-all duration-300">
+            <span className="text-xs text-white/60 font-mono">by <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 font-bold">jack</span></span>
+          </div>
+        </div>
+      </div>
+
       <h1 className={`text-4xl md:text-6xl font-black text-white mb-6 tracking-tight drop-shadow-lg ${activeTheme.font} text-center select-none`}>
         <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500">AUTOMATION</span>
         <br/>RACER
@@ -277,18 +294,8 @@ const MainMenu: React.FC<MainMenuProps> = ({
         </div>
       </div>
       
-      <div className="mt-8 text-white/30 text-xs font-mono text-center space-y-1">
+      <div className="mt-8 text-white/30 text-xs font-mono text-center">
         <div>↑↓ SWITCH LANES  •  ←→ DODGE  •  SPACE JUMP</div>
-      </div>
-
-      <div className="mt-4 text-center space-y-2">
-        <div className="text-white/20 text-xs font-mono">
-          AI Automations by <span className="text-cyan-400/60 font-bold">jack</span>
-        </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-slate-800/40 to-slate-900/40 border border-white/5 backdrop-blur-sm">
-          <span className="text-[10px] text-cyan-400/40 font-mono tracking-wider">VERSION</span>
-          <span className="text-xs text-white/30 font-mono font-bold tracking-wide">{packageJson.version}</span>
-        </div>
       </div>
     </div>
   );
