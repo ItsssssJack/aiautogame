@@ -833,6 +833,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, theme, character, on
             });
             createExplosion(ent.x, ent.y, '#ef4444', 30);
             showFloatingText("SONIC BLAST!", "#ef4444");
+            // Break out of collision loop since we've modified the entire entities array
+            break;
           }
         }
       }
